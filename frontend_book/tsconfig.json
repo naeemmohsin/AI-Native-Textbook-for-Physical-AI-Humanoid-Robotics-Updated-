@@ -3,7 +3,7 @@
   "extends": "@docusaurus/tsconfig",
   "compilerOptions": {
     "ignoreDeprecations": "6.0",
-    "baseUrl": "."
+    "baseUrl": "/"
   },
   "exclude": [".docusaurus", "build"]
 }
