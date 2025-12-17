@@ -1,0 +1,171 @@
+<?xml version="1.0" ?>
+<!--
+  IMU (Inertial Measurement Unit) Sensor Configuration for Gazebo Sim
+
+  This configuration demonstrates an IMU sensor with:
+  - Accelerometer (linear acceleration)
+  - Gyroscope (angular velocity)
+  - Orientation estimation
+  - Realistic noise models including bias and drift
+
+  Based on typical MEMS IMU specifications.
+-->
+<sdf version="1.9">
+  <!-- IMU Sensor Plugin Configuration -->
+  <sensor name="imu" type="imu">
+    <!-- Sensor pose relative to parent link -->
+    <pose>0 0 0 0 0 0</pose>
+
+    <!-- Update rate in Hz -->
+    <update_rate>100</update_rate>
+
+    <!-- Always on when simulation is running -->
+    <always_on>true</always_on>
+
+    <!-- Visualize IMU axes in Gazebo GUI -->
+    <visualize>true</visualize>
+
+    <!-- IMU-specific configuration -->
+    <imu>
+      <!-- Orientation reference frame -->
+      <orientation_reference_frame>
+        <localization>ENU</localization>
+        <grav_dir_x>0</grav_dir_x>
+        <grav_dir_y>0</grav_dir_y>
+        <grav_dir_z>-1</grav_dir_z>
+      </orientation_reference_frame>
+
+      <!-- Angular velocity (gyroscope) noise -->
+      <angular_velocity>
+        <x>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0002</stddev>
+            <!-- Bias random walk -->
+            <bias_mean>0.0000075</bias_mean>
+            <bias_stddev>0.0000008</bias_stddev>
+            <!-- Dynamic bias instability -->
+            <dynamic_bias_stddev>0.00000035</dynamic_bias_stddev>
+            <dynamic_bias_correlation_time>300.0</dynamic_bias_correlation_time>
+          </noise>
+        </x>
+        <y>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0002</stddev>
+            <bias_mean>0.0000075</bias_mean>
+            <bias_stddev>0.0000008</bias_stddev>
+            <dynamic_bias_stddev>0.00000035</dynamic_bias_stddev>
+            <dynamic_bias_correlation_time>300.0</dynamic_bias_correlation_time>
+          </noise>
+        </y>
+        <z>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.0002</stddev>
+            <bias_mean>0.0000075</bias_mean>
+            <bias_stddev>0.0000008</bias_stddev>
+            <dynamic_bias_stddev>0.00000035</dynamic_bias_stddev>
+            <dynamic_bias_correlation_time>300.0</dynamic_bias_correlation_time>
+          </noise>
+        </z>
+      </angular_velocity>
+
+      <!-- Linear acceleration (accelerometer) noise -->
+      <linear_acceleration>
+        <x>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.017</stddev>
+            <!-- Bias random walk -->
+            <bias_mean>0.1</bias_mean>
+            <bias_stddev>0.001</bias_stddev>
+            <!-- Dynamic bias instability -->
+            <dynamic_bias_stddev>0.00015</dynamic_bias_stddev>
+            <dynamic_bias_correlation_time>300.0</dynamic_bias_correlation_time>
+          </noise>
+        </x>
+        <y>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.017</stddev>
+            <bias_mean>0.1</bias_mean>
+            <bias_stddev>0.001</bias_stddev>
+            <dynamic_bias_stddev>0.00015</dynamic_bias_stddev>
+            <dynamic_bias_correlation_time>300.0</dynamic_bias_correlation_time>
+          </noise>
+        </y>
+        <z>
+          <noise type="gaussian">
+            <mean>0.0</mean>
+            <stddev>0.017</stddev>
+            <bias_mean>0.1</bias_mean>
+            <bias_stddev>0.001</bias_stddev>
+            <dynamic_bias_stddev>0.00015</dynamic_bias_stddev>
+            <dynamic_bias_correlation_time>300.0</dynamic_bias_correlation_time>
+          </noise>
+        </z>
+      </linear_acceleration>
+
+      <!-- Enable gravity compensation -->
+      <enable_orientation>true</enable_orientation>
+    </imu>
+
+    <!-- ROS 2 Topic Publishing -->
+    <topic>/imu</topic>
+    <gz_frame_id>imu_link</gz_frame_id>
+  </sensor>
+
+  <!--
+    Output data:
+    - Angular velocity (rad/s): x, y, z
+    - Linear acceleration (m/s²): x, y, z
+    - Orientation (quaternion): x, y, z, w
+
+    Bridge command for ROS 2:
+    ros2 run ros_gz_bridge parameter_bridge /imu@sensor_msgs/msg/Imu@gz.msgs.IMU
+
+    Noise parameters explained:
+    - mean: Average offset (should be ~0 for calibrated sensor)
+    - stddev: Random noise standard deviation
+    - bias_mean: Static bias offset
+    - bias_stddev: Variation in bias between power cycles
+    - dynamic_bias_stddev: Bias drift over time
+    - dynamic_bias_correlation_time: Time constant for bias drift (seconds)
+
+    To use this sensor, include it in a link:
+
+    <link name="imu_link">
+      <pose>0 0 0.3 0 0 0</pose>
+      <inertial>
+        <mass>0.01</mass>
+        <inertia>
+          <ixx>0.00001</ixx>
+          <iyy>0.00001</iyy>
+          <izz>0.00001</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <box>
+            <size>0.02 0.02 0.01</size>
+          </box>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <box>
+            <size>0.02 0.02 0.01</size>
+          </box>
+        </geometry>
+        <material>
+          <ambient>0.0 0.5 0.0 1</ambient>
+          <diffuse>0.0 0.5 0.0 1</diffuse>
+        </material>
+      </visual>
+
+      [INSERT SENSOR HERE]
+
+    </link>
+  -->
+</sdf>

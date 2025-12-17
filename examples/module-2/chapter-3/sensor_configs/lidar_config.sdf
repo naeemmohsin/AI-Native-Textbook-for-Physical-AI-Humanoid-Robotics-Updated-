@@ -1,0 +1,110 @@
+<?xml version="1.0" ?>
+<!--
+  LiDAR Sensor Configuration for Gazebo Sim
+
+  This configuration demonstrates a 2D LiDAR sensor with:
+  - 360-degree field of view
+  - Configurable range and resolution
+  - Gaussian noise model
+
+  Add this to your robot model's SDF/URDF to enable LiDAR simulation.
+-->
+<sdf version="1.9">
+  <!-- LiDAR Sensor Plugin Configuration -->
+  <sensor name="lidar" type="gpu_lidar">
+    <!-- Sensor pose relative to parent link -->
+    <pose>0 0 0.1 0 0 0</pose>
+
+    <!-- Update rate in Hz -->
+    <update_rate>10</update_rate>
+
+    <!-- Always on when simulation is running -->
+    <always_on>true</always_on>
+
+    <!-- Visualize rays in Gazebo GUI -->
+    <visualize>true</visualize>
+
+    <!-- LiDAR-specific configuration -->
+    <lidar>
+      <scan>
+        <horizontal>
+          <!-- Number of samples per scan -->
+          <samples>360</samples>
+          <!-- Angular resolution -->
+          <resolution>1</resolution>
+          <!-- Field of view: -180 to +180 degrees -->
+          <min_angle>-3.14159</min_angle>
+          <max_angle>3.14159</max_angle>
+        </horizontal>
+        <vertical>
+          <!-- Single-plane LiDAR (2D) -->
+          <samples>1</samples>
+          <resolution>1</resolution>
+          <min_angle>0</min_angle>
+          <max_angle>0</max_angle>
+        </vertical>
+      </scan>
+      <range>
+        <!-- Minimum detection range (meters) -->
+        <min>0.1</min>
+        <!-- Maximum detection range (meters) -->
+        <max>30.0</max>
+        <!-- Range resolution -->
+        <resolution>0.01</resolution>
+      </range>
+      <!-- Noise configuration -->
+      <noise>
+        <type>gaussian</type>
+        <!-- Standard deviation of range noise (meters) -->
+        <mean>0.0</mean>
+        <stddev>0.01</stddev>
+      </noise>
+    </lidar>
+
+    <!-- ROS 2 Topic Publishing -->
+    <topic>/scan</topic>
+    <gz_frame_id>lidar_link</gz_frame_id>
+  </sensor>
+
+  <!--
+    To use this sensor, include it in a link:
+
+    <link name="lidar_link">
+      <pose>0 0 0.5 0 0 0</pose>
+      <inertial>
+        <mass>0.1</mass>
+        <inertia>
+          <ixx>0.001</ixx>
+          <iyy>0.001</iyy>
+          <izz>0.001</izz>
+        </inertia>
+      </inertial>
+      <collision name="collision">
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+      </collision>
+      <visual name="visual">
+        <geometry>
+          <cylinder>
+            <radius>0.05</radius>
+            <length>0.05</length>
+          </cylinder>
+        </geometry>
+        <material>
+          <ambient>0.1 0.1 0.1 1</ambient>
+          <diffuse>0.1 0.1 0.1 1</diffuse>
+        </material>
+      </visual>
+
+      [INSERT SENSOR HERE]
+
+    </link>
+
+    Bridge command for ROS 2:
+    ros2 run ros_gz_bridge parameter_bridge /scan@sensor_msgs/msg/LaserScan@gz.msgs.LaserScan
+  -->
+</sdf>
