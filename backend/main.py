@@ -4,7 +4,7 @@ Embedding Pipeline for RAG Retrieval
 This script crawls a deployed Docusaurus documentation site, extracts text content,
 generates embeddings using Cohere, and stores them in Qdrant for RAG-based retrieval.
 
-Target URL: https://docusaurus.io/
+Target URL: "https://ai-native-textbook-for-physical-ai.vercel.app"
 Collection: rag-embedding
 """
 
@@ -23,9 +23,11 @@ from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 
 # Configuration
-BASE_URL = "https://ai-native-textbook-for-physical-ai-phi.vercel.app/" 
-TARGET_URL = os.getenv("https://ai-native-textbook-for-physical-ai-humanoid-robotics-mz3klk0zv.vercel.app")
-SITEMAP_URL = "https://ai-native-textbook-for-physical-ai-humanoid-robotics-mz3klk0zv.vercel.app/sitemap.xml" 
+BASE_URL = "https://ai-native-textbook-for-physical-ai.vercel.app" 
+TARGET_URL = "https://ai-native-textbook-for-physical-ai.vercel.app"
+SITEMAP_URL = "https://ai-native-textbook-for-physical-ai.vercel.app/sitemap.xml"
+PROJECT_NAME = "ai-native-textbook-for-physical-ai-humanoid-robotics-updated"
+PROJECT_ID="prj_SDeLZF9D3Aw4Iw7NEj72oontiwZz"
 COLLECTION_NAME = "rag-embedding"
 EMBEDDING_MODEL = "embed-english-v3.0"
 EMBEDDING_DIMENSION = 1024
@@ -42,6 +44,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Get all URLs from the Docusaurus site
 
 def get_all_urls(base_url: str, max_urls: int = MAX_URLS) -> list[str]:
     """
@@ -104,6 +107,7 @@ def get_all_urls(base_url: str, max_urls: int = MAX_URLS) -> list[str]:
     logger.info(f"Discovered {len(url_list)} unique URLs")
     return url_list
 
+#Extract text from URLs
 
 def extract_text_from_urls(urls: list[str]) -> list[tuple[str, str, str]]:
     """
@@ -172,6 +176,7 @@ def extract_text_from_urls(urls: list[str]) -> list[tuple[str, str, str]]:
     logger.info(f"Successfully extracted {len(documents)} documents")
     return documents
 
+# Chunk text for embedding (text got from above function)
 
 def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
     """
@@ -217,6 +222,7 @@ def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVE
 
     return chunks
 
+#embed text chunks using Cohere
 
 def embed(chunks: list[str], cohere_client: cohere.Client) -> list[list[float]]:
     """
@@ -257,6 +263,7 @@ def embed(chunks: list[str], cohere_client: cohere.Client) -> list[list[float]]:
 
     return all_embeddings
 
+# Creating Qdrant collection and saving embeddings
 
 def create_collection(client: QdrantClient) -> None:
     """
@@ -289,6 +296,7 @@ def create_collection(client: QdrantClient) -> None:
         logger.error(f"Failed to create collection: {e}")
         raise
 
+# Save chunks and embeddings to Qdrant
 
 def save_chunk_to_qdrant(
     client: QdrantClient,
@@ -351,9 +359,9 @@ def main() -> None:
     load_dotenv()
 
     # Validate configuration
-    cohere_api_key = os.getenv("COHERE_API_KEY")
-    qdrant_url = os.getenv("QDRANT_URL", "https://ae5ff5ad-7d4c-476b-b1f8-baa4222bf51e.europe-west3-0.gcp.cloud.qdrant.io:6333")
-    qdrant_api_key = os.getenv("QDRANT_API_KEY")
+    cohere_api_key = os.getenv("tuC0r2b0dJtSbMNb4jAwbowGY9UosdPZQnffVKgR")
+    qdrant_url = os.getenv("https://ae5ff5ad-7d4c-476b-b1f8-baa4222bf51e.europe-west3-0.gcp.cloud.qdrant.io:6333")
+    qdrant_api_key = os.getenv("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwiZXhwIjoxNzY4ODQ4NTY0fQ.y2SudzIhPq2KqnsLh2IN-eMvWdITPImuLeuS0fXP33s")
 
     if not cohere_api_key:
         logger.error("COHERE_API_KEY environment variable is not set")
