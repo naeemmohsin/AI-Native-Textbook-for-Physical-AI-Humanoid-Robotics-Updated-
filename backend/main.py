@@ -34,7 +34,7 @@ EMBEDDING_DIMENSION = 1024
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 100
 BATCH_SIZE = 96
-MAX_URLS = 20  # Limit URLs to crawl for testing
+MAX_URLS = 100  # Limit URLs to crawl
 
 # Configure logging
 logging.basicConfig(
@@ -46,9 +46,52 @@ logger = logging.getLogger(__name__)
 
 # Get all URLs from the Docusaurus site
 
+def get_urls_from_sitemap(sitemap_url: str, base_url: str, max_urls: int = MAX_URLS) -> list[str]:
+    """
+    Fetch URLs from sitemap.xml and fix domain mismatches.
+
+    Args:
+        sitemap_url: URL of the sitemap.xml
+        base_url: The actual base URL to use (fixes domain mismatches)
+        max_urls: Maximum number of URLs to collect
+
+    Returns:
+        List of URLs from the sitemap with corrected domains
+    """
+    logger.info(f"Fetching sitemap from {sitemap_url}")
+
+    try:
+        response = requests.get(sitemap_url, timeout=10)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "xml")
+        loc_tags = soup.find_all("loc")
+
+        urls = []
+        base_parsed = urlparse(base_url)
+
+        for loc in loc_tags:
+            if len(urls) >= max_urls:
+                break
+
+            original_url = loc.get_text(strip=True)
+            parsed = urlparse(original_url)
+
+            # Replace domain with the actual base URL domain
+            fixed_url = f"{base_parsed.scheme}://{base_parsed.netloc}{parsed.path}"
+            urls.append(fixed_url)
+
+        logger.info(f"Found {len(urls)} URLs in sitemap")
+        return urls
+
+    except requests.RequestException as e:
+        logger.warning(f"Failed to fetch sitemap: {e}")
+        return []
+
+
 def get_all_urls(base_url: str, max_urls: int = MAX_URLS) -> list[str]:
     """
-    Crawl the Docusaurus site and discover all documentation page URLs.
+    Get URLs from sitemap first, then fall back to crawling.
 
     Args:
         base_url: The root URL of the Docusaurus site
@@ -57,6 +100,15 @@ def get_all_urls(base_url: str, max_urls: int = MAX_URLS) -> list[str]:
     Returns:
         List of unique URLs found on the site
     """
+    # Try sitemap first
+    sitemap_url = f"{base_url.rstrip('/')}/sitemap.xml"
+    urls = get_urls_from_sitemap(sitemap_url, base_url, max_urls)
+
+    if urls:
+        return urls
+
+    # Fall back to crawling
+    logger.info(f"Falling back to crawling from {base_url}")
     urls = set()
     visited = set()
     to_visit = [base_url]
@@ -359,9 +411,9 @@ def main() -> None:
     load_dotenv()
 
     # Validate configuration
-    cohere_api_key = os.getenv("tuC0r2b0dJtSbMNb4jAwbowGY9UosdPZQnffVKgR")
-    qdrant_url = os.getenv("https://ae5ff5ad-7d4c-476b-b1f8-baa4222bf51e.europe-west3-0.gcp.cloud.qdrant.io:6333")
-    qdrant_api_key = os.getenv("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2Nlc3MiOiJtIiwiZXhwIjoxNzY4ODQ4NTY0fQ.y2SudzIhPq2KqnsLh2IN-eMvWdITPImuLeuS0fXP33s")
+    cohere_api_key = os.getenv("COHERE_API_KEY")
+    qdrant_url = os.getenv("QDRANT_URL")
+    qdrant_api_key = os.getenv("QDRANT_API_KEY")
 
     if not cohere_api_key:
         logger.error("COHERE_API_KEY environment variable is not set")
