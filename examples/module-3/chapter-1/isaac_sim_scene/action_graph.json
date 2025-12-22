@@ -1,0 +1,179 @@
+{
+  "description": "ROS 2 Bridge Action Graph Configuration for Isaac Sim Humanoid Scene",
+  "version": "1.0",
+  "graph_path": "/World/ActionGraph",
+  "nodes": [
+    {
+      "name": "OnPlaybackTick",
+      "type": "omni.graph.action.OnPlaybackTick",
+      "description": "Triggers graph execution on each simulation tick"
+    },
+    {
+      "name": "ROS2Context",
+      "type": "omni.isaac.ros2_bridge.ROS2Context",
+      "description": "Initializes ROS 2 context for communication",
+      "parameters": {
+        "domain_id": 0,
+        "useDomainIDEnvVar": true
+      }
+    },
+    {
+      "name": "ReadSimTime",
+      "type": "omni.isaac.core_nodes.IsaacReadSimulationTime",
+      "description": "Reads current simulation time for message timestamps"
+    },
+    {
+      "name": "PublishClock",
+      "type": "omni.isaac.ros2_bridge.ROS2PublishClock",
+      "parameters": {
+        "topicName": "/clock"
+      }
+    },
+    {
+      "name": "ReadCamera",
+      "type": "omni.isaac.ros2_bridge.ROS2CameraHelper",
+      "parameters": {
+        "cameraPrim": "/World/Robots/Humanoid/head/Camera",
+        "type": "rgb",
+        "enableSemanticLabels": false,
+        "frameId": "camera_link"
+      }
+    },
+    {
+      "name": "PublishRGBImage",
+      "type": "omni.isaac.ros2_bridge.ROS2PublishImage",
+      "parameters": {
+        "topicName": "/camera/image_raw",
+        "queueSize": 10,
+        "frameId": "camera_link"
+      }
+    },
+    {
+      "name": "ReadDepthCamera",
+      "type": "omni.isaac.ros2_bridge.ROS2CameraHelper",
+      "parameters": {
+        "cameraPrim": "/World/Robots/Humanoid/head/DepthCamera",
+        "type": "depth",
+        "frameId": "camera_depth_link"
+      }
+    },
+    {
+      "name": "PublishDepthImage",
+      "type": "omni.isaac.ros2_bridge.ROS2PublishImage",
+      "parameters": {
+        "topicName": "/camera/depth",
+        "queueSize": 10,
+        "frameId": "camera_depth_link"
+      }
+    },
+    {
+      "name": "PublishCameraInfo",
+      "type": "omni.isaac.ros2_bridge.ROS2PublishCameraInfo",
+      "parameters": {
+        "topicName": "/camera/camera_info",
+        "queueSize": 10,
+        "frameId": "camera_link"
+      }
+    },
+    {
+      "name": "ReadIMU",
+      "type": "omni.isaac.sensor.IsaacReadIMU",
+      "parameters": {
+        "imuPrim": "/World/Robots/Humanoid/torso/IMU"
+      }
+    },
+    {
+      "name": "PublishIMU",
+      "type": "omni.isaac.ros2_bridge.ROS2PublishImu",
+      "parameters": {
+        "topicName": "/imu/data",
+        "queueSize": 10,
+        "frameId": "imu_link"
+      }
+    },
+    {
+      "name": "ReadLidar",
+      "type": "omni.isaac.range_sensor.IsaacReadLidarBeams",
+      "parameters": {
+        "lidarPrim": "/World/Robots/Humanoid/torso/Lidar"
+      }
+    },
+    {
+      "name": "PublishLaserScan",
+      "type": "omni.isaac.ros2_bridge.ROS2PublishLaserScan",
+      "parameters": {
+        "topicName": "/scan",
+        "queueSize": 10,
+        "frameId": "lidar_link"
+      }
+    },
+    {
+      "name": "PublishJointState",
+      "type": "omni.isaac.ros2_bridge.ROS2PublishJointState",
+      "parameters": {
+        "targetPrim": "/World/Robots/Humanoid",
+        "topicName": "/joint_states",
+        "queueSize": 10
+      }
+    },
+    {
+      "name": "SubscribeJointCommand",
+      "type": "omni.isaac.ros2_bridge.ROS2SubscribeJointState",
+      "parameters": {
+        "topicName": "/joint_commands",
+        "queueSize": 10
+      }
+    },
+    {
+      "name": "ArticulationController",
+      "type": "omni.isaac.core_nodes.IsaacArticulationController",
+      "parameters": {
+        "robotPath": "/World/Robots/Humanoid",
+        "usePath": true
+      }
+    },
+    {
+      "name": "PublishTF",
+      "type": "omni.isaac.ros2_bridge.ROS2PublishTransformTree",
+      "parameters": {
+        "targetPrims": ["/World/Robots/Humanoid"],
+        "topicName": "/tf",
+        "queueSize": 10
+      }
+    }
+  ],
+  "connections": [
+    {"from": "OnPlaybackTick.outputs:tick", "to": "ReadSimTime.inputs:execIn"},
+    {"from": "ReadSimTime.outputs:execOut", "to": "PublishClock.inputs:execIn"},
+    {"from": "OnPlaybackTick.outputs:tick", "to": "ReadCamera.inputs:execIn"},
+    {"from": "ReadCamera.outputs:execOut", "to": "PublishRGBImage.inputs:execIn"},
+    {"from": "OnPlaybackTick.outputs:tick", "to": "ReadDepthCamera.inputs:execIn"},
+    {"from": "ReadDepthCamera.outputs:execOut", "to": "PublishDepthImage.inputs:execIn"},
+    {"from": "OnPlaybackTick.outputs:tick", "to": "PublishCameraInfo.inputs:execIn"},
+    {"from": "OnPlaybackTick.outputs:tick", "to": "ReadIMU.inputs:execIn"},
+    {"from": "ReadIMU.outputs:execOut", "to": "PublishIMU.inputs:execIn"},
+    {"from": "OnPlaybackTick.outputs:tick", "to": "ReadLidar.inputs:execIn"},
+    {"from": "ReadLidar.outputs:execOut", "to": "PublishLaserScan.inputs:execIn"},
+    {"from": "OnPlaybackTick.outputs:tick", "to": "PublishJointState.inputs:execIn"},
+    {"from": "OnPlaybackTick.outputs:tick", "to": "PublishTF.inputs:execIn"},
+    {"from": "SubscribeJointCommand.outputs:jointNames", "to": "ArticulationController.inputs:jointNames"},
+    {"from": "SubscribeJointCommand.outputs:positionCommand", "to": "ArticulationController.inputs:positionCommand"},
+    {"from": "SubscribeJointCommand.outputs:velocityCommand", "to": "ArticulationController.inputs:velocityCommand"},
+    {"from": "SubscribeJointCommand.outputs:effortCommand", "to": "ArticulationController.inputs:effortCommand"}
+  ],
+  "ros2_topics": {
+    "publishers": [
+      {"topic": "/clock", "type": "rosgraph_msgs/msg/Clock", "frequency": "sim_rate"},
+      {"topic": "/camera/image_raw", "type": "sensor_msgs/msg/Image", "frequency": 30},
+      {"topic": "/camera/depth", "type": "sensor_msgs/msg/Image", "frequency": 30},
+      {"topic": "/camera/camera_info", "type": "sensor_msgs/msg/CameraInfo", "frequency": 30},
+      {"topic": "/imu/data", "type": "sensor_msgs/msg/Imu", "frequency": 200},
+      {"topic": "/scan", "type": "sensor_msgs/msg/LaserScan", "frequency": 20},
+      {"topic": "/joint_states", "type": "sensor_msgs/msg/JointState", "frequency": 100},
+      {"topic": "/tf", "type": "tf2_msgs/msg/TFMessage", "frequency": 100}
+    ],
+    "subscribers": [
+      {"topic": "/joint_commands", "type": "sensor_msgs/msg/JointState"}
+    ]
+  }
+}

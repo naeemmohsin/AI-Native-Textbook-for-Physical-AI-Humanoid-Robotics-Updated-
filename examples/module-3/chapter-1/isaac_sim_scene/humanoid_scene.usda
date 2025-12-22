@@ -1,0 +1,110 @@
+#usda 1.0
+(
+    defaultPrim = "World"
+    metersPerUnit = 1.0
+    upAxis = "Z"
+    doc = "NVIDIA Isaac Sim Humanoid Robot Scene for Module 3, Chapter 1"
+)
+
+def Xform "World"
+{
+    def PhysicsScene "PhysicsScene"
+    {
+        vector3f physics:gravityDirection = (0, 0, -1)
+        float physics:gravityMagnitude = 9.81
+    }
+
+    def Xform "Environment"
+    {
+        def Plane "GroundPlane" (
+            prepend apiSchemas = ["PhysicsCollisionAPI"]
+        )
+        {
+            uniform token axis = "Z"
+            double length = 100
+            double width = 100
+            rel material:binding = </World/Looks/GroundMaterial>
+        }
+
+        def DomeLight "DomeLight"
+        {
+            float inputs:intensity = 1000
+            asset inputs:texture:file = @omniverse://localhost/NVIDIA/Assets/Skies/Clear/noon_grass_4k.hdr@
+        }
+
+        def DistantLight "SunLight"
+        {
+            float inputs:intensity = 3000
+            float3 xformOp:rotateXYZ = (-45, 0, 30)
+            uniform token[] xformOpOrder = ["xformOp:rotateXYZ"]
+        }
+    }
+
+    def Xform "Robots"
+    {
+        # Humanoid robot loaded via URDF importer
+        # See launch_sim.py for programmatic loading
+
+        def Xform "Humanoid" (
+            prepend references = @./humanoid_robot.usd@
+            doc = "Reference to humanoid robot USD or load via Python"
+        )
+        {
+            double3 xformOp:translate = (0, 0, 0.95)
+            uniform token[] xformOpOrder = ["xformOp:translate"]
+
+            # Sensors are added programmatically
+            # Camera: /World/Robots/Humanoid/head/Camera
+            # IMU: /World/Robots/Humanoid/torso/IMU
+        }
+    }
+
+    def Xform "Cameras"
+    {
+        def Camera "MainCamera"
+        {
+            float focalLength = 24
+            float horizontalAperture = 36
+            float verticalAperture = 24
+            double3 xformOp:translate = (3, 3, 2)
+            float3 xformOp:rotateXYZ = (-20, 0, 135)
+            uniform token[] xformOpOrder = ["xformOp:translate", "xformOp:rotateXYZ"]
+        }
+    }
+
+    def Scope "Looks"
+    {
+        def Material "GroundMaterial"
+        {
+            token outputs:surface.connect = </World/Looks/GroundMaterial/PreviewSurface.outputs:surface>
+
+            def Shader "PreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.4, 0.4, 0.4)
+                float inputs:roughness = 0.8
+                token outputs:surface
+            }
+        }
+
+        def Material "RobotMaterial"
+        {
+            token outputs:surface.connect = </World/Looks/RobotMaterial/PreviewSurface.outputs:surface>
+
+            def Shader "PreviewSurface"
+            {
+                uniform token info:id = "UsdPreviewSurface"
+                color3f inputs:diffuseColor = (0.7, 0.7, 0.8)
+                float inputs:metallic = 0.9
+                float inputs:roughness = 0.3
+                token outputs:surface
+            }
+        }
+    }
+
+    def Xform "ActionGraphs"
+    {
+        # Action graphs for ROS 2 bridge are created programmatically
+        # See action_graph.json for configuration
+    }
+}

@@ -1,0 +1,152 @@
+# Camera Configuration for Isaac ROS Perception
+# This file contains camera intrinsics and configuration for visual SLAM and perception pipelines.
+
+# =============================================================================
+# Camera Intrinsic Parameters
+# These values should be obtained from camera calibration (e.g., using camera_calibration package)
+# =============================================================================
+
+camera:
+  # Left camera intrinsics
+  left:
+    # Focal lengths (pixels)
+    fx: 380.0
+    fy: 380.0
+    # Principal point (pixels)
+    cx: 320.0
+    cy: 240.0
+    # Distortion coefficients (k1, k2, p1, p2, k3)
+    distortion:
+      k1: 0.0
+      k2: 0.0
+      p1: 0.0
+      p2: 0.0
+      k3: 0.0
+
+  # Right camera intrinsics (for stereo)
+  right:
+    fx: 380.0
+    fy: 380.0
+    cx: 320.0
+    cy: 240.0
+    distortion:
+      k1: 0.0
+      k2: 0.0
+      p1: 0.0
+      p2: 0.0
+      k3: 0.0
+
+# =============================================================================
+# Stereo Configuration
+# =============================================================================
+
+stereo:
+  # Baseline: distance between left and right cameras (meters)
+  baseline: 0.1
+
+  # Rectification matrices (identity if pre-rectified)
+  rectification_matrix:
+    - [1.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0]
+    - [0.0, 0.0, 1.0]
+
+  # Projection matrices for rectified images
+  # P_left = K * [I | 0]
+  # P_right = K * [I | -baseline*fx]
+
+# =============================================================================
+# Image Configuration
+# =============================================================================
+
+image:
+  # Resolution
+  width: 640
+  height: 480
+
+  # Frame rate (Hz)
+  fps: 30
+
+  # Encoding
+  format: "rgb8"  # Options: rgb8, bgr8, mono8
+
+# =============================================================================
+# ROS 2 Topic Configuration
+# =============================================================================
+
+topics:
+  # Input topics from camera driver
+  left_image: "/camera/left/image_raw"
+  left_info: "/camera/left/camera_info"
+  right_image: "/camera/right/image_raw"
+  right_info: "/camera/right/camera_info"
+
+  # Processed image topics
+  left_rect: "/camera/left/image_rect"
+  right_rect: "/camera/right/image_rect"
+
+# =============================================================================
+# cuVSLAM Configuration
+# =============================================================================
+
+vslam:
+  # Enable/disable features
+  enable_localization: true
+  enable_mapping: true
+  enable_loop_closure: true
+
+  # Performance settings
+  denoise_input: true
+  images_are_rectified: false  # Set true if camera driver provides rectified images
+
+  # Frame IDs
+  map_frame: "map"
+  odom_frame: "odom"
+  base_frame: "base_link"
+  camera_frame: "camera_optical_frame"
+
+# =============================================================================
+# IMU Configuration (for visual-inertial odometry)
+# =============================================================================
+
+imu:
+  # Enable IMU fusion
+  enabled: true
+
+  # IMU topic
+  topic: "/imu/data"
+
+  # Noise parameters (from datasheet or Allan variance calibration)
+  gyro_noise_density: 0.000244  # rad/s/sqrt(Hz)
+  gyro_random_walk: 0.000019393  # rad/s^2/sqrt(Hz)
+  accel_noise_density: 0.001862  # m/s^2/sqrt(Hz)
+  accel_random_walk: 0.003  # m/s^3/sqrt(Hz)
+
+  # IMU rate (Hz)
+  frequency: 200
+
+# =============================================================================
+# Transform Configuration
+# =============================================================================
+
+transforms:
+  # Camera position relative to base_link
+  camera_to_base:
+    translation:
+      x: 0.1   # 10cm forward
+      y: 0.0   # centered
+      z: 0.5   # 50cm up (head height)
+    rotation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
+
+  # IMU position relative to base_link
+  imu_to_base:
+    translation:
+      x: 0.0
+      y: 0.0
+      z: 0.3  # In torso
+    rotation:
+      roll: 0.0
+      pitch: 0.0
+      yaw: 0.0
