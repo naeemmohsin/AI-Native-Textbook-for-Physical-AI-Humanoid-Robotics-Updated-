@@ -1,0 +1,224 @@
+# Demo Scenario: Fetch the Object
+# ================================
+# Complete scenario definition for the "fetch the water bottle" demo.
+# This file defines the environment setup, task sequence, and success criteria.
+
+scenario:
+  name: "Fetch the Water Bottle"
+  description: |
+    The robot starts in the living room and receives a voice command to fetch
+    a water bottle from the kitchen. It must navigate to the kitchen, locate
+    the bottle, pick it up, and return to the user.
+  version: "1.0"
+  estimated_duration_sec: 120
+
+# Environment configuration
+environment:
+  name: "Home Environment"
+  simulation:
+    engine: "isaac_sim"
+    scene_file: "scenes/home_environment.usd"
+    physics_dt: 0.001
+
+  # Room definitions
+  rooms:
+    living_room:
+      center: {x: 2.0, y: 2.0, z: 0.0}
+      bounds:
+        min: {x: 0.0, y: 0.0, z: 0.0}
+        max: {x: 4.0, y: 4.0, z: 3.0}
+    kitchen:
+      center: {x: 6.0, y: 2.0, z: 0.0}
+      bounds:
+        min: {x: 4.0, y: 0.0, z: 0.0}
+        max: {x: 8.0, y: 4.0, z: 3.0}
+    hallway:
+      center: {x: 4.0, y: 2.0, z: 0.0}
+      bounds:
+        min: {x: 3.5, y: 1.0, z: 0.0}
+        max: {x: 4.5, y: 3.0, z: 3.0}
+
+  # Object placements
+  objects:
+    water_bottle:
+      class: "bottle"
+      model: "models/water_bottle.usd"
+      pose:
+        position: {x: 6.5, y: 2.5, z: 0.8}  # On kitchen table
+        orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+      properties:
+        graspable: true
+        weight_kg: 0.5
+        dimensions: {x: 0.07, y: 0.07, z: 0.25}
+
+    kitchen_table:
+      class: "table"
+      model: "models/kitchen_table.usd"
+      pose:
+        position: {x: 6.5, y: 2.5, z: 0.0}
+        orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+      properties:
+        graspable: false
+
+# Robot initial state
+robot:
+  initial_pose:
+    position: {x: 2.0, y: 2.0, z: 0.0}
+    orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+  initial_state: "idle"
+  gripper_state: "open"
+
+# User configuration
+user:
+  position: {x: 2.0, y: 2.5, z: 0.0}  # Near robot start position
+  facing: {x: 1.0, y: 0.0, z: 0.0}  # Facing positive X
+
+# Voice command
+voice_command:
+  trigger: "hey robot"
+  command: "bring me the water bottle from the kitchen"
+  expected_intent:
+    action: "fetch"
+    object: "water bottle"
+    location: "kitchen"
+
+# Expected execution sequence
+expected_sequence:
+  - step: 1
+    action: "wake_word_detected"
+    description: "System activates on wake word"
+    timeout_sec: 2
+
+  - step: 2
+    action: "transcription_complete"
+    description: "Voice command transcribed"
+    expected_text: "bring me the water bottle from the kitchen"
+    timeout_sec: 5
+
+  - step: 3
+    action: "intent_parsed"
+    description: "Intent extracted from transcription"
+    expected_intent:
+      action: "fetch"
+      object: "water bottle"
+      location: "kitchen"
+    timeout_sec: 2
+
+  - step: 4
+    action: "plan_generated"
+    description: "LLM generates action plan"
+    expected_actions:
+      - {type: "navigate", target: "kitchen"}
+      - {type: "detect", object: "water_bottle"}
+      - {type: "pick", object: "water_bottle"}
+      - {type: "navigate", target: "user"}
+      - {type: "present", object: "water_bottle"}
+    timeout_sec: 10
+
+  - step: 5
+    action: "navigate_to_kitchen"
+    description: "Robot navigates to kitchen"
+    expected_pose:
+      position: {x: 6.0, y: 2.0, z: 0.0}
+      tolerance: {xy: 0.5, yaw: 0.2}
+    timeout_sec: 30
+
+  - step: 6
+    action: "detect_object"
+    description: "Robot detects water bottle"
+    expected_detection:
+      class: "bottle"
+      min_confidence: 0.7
+    timeout_sec: 10
+
+  - step: 7
+    action: "pick_object"
+    description: "Robot picks up water bottle"
+    expected_result:
+      gripper_state: "closed"
+      object_attached: true
+    timeout_sec: 15
+
+  - step: 8
+    action: "navigate_to_user"
+    description: "Robot returns to user"
+    expected_pose:
+      position: {x: 2.0, y: 2.5, z: 0.0}
+      tolerance: {xy: 0.5, yaw: 0.3}
+    timeout_sec: 30
+
+  - step: 9
+    action: "present_object"
+    description: "Robot presents object to user"
+    timeout_sec: 5
+
+  - step: 10
+    action: "task_complete"
+    description: "Robot announces completion"
+    expected_speech: "Here is the water bottle"
+    timeout_sec: 5
+
+# Success criteria
+success_criteria:
+  required:
+    - voice_command_recognized: true
+    - intent_correct: true
+    - plan_valid: true
+    - navigation_succeeded: true
+    - object_detected: true
+    - object_picked: true
+    - returned_to_user: true
+
+  metrics:
+    total_time_sec:
+      max: 120
+      target: 90
+    navigation_time_sec:
+      max: 60
+      target: 45
+    planning_time_sec:
+      max: 10
+      target: 5
+    detection_confidence:
+      min: 0.7
+      target: 0.85
+
+# Failure injection (for testing recovery)
+failure_tests:
+  - name: "Object not visible"
+    inject_at_step: 6
+    failure_type: "detection_failed"
+    expected_recovery: "move_and_retry"
+
+  - name: "Navigation blocked"
+    inject_at_step: 5
+    failure_type: "path_blocked"
+    expected_recovery: "replan_path"
+
+  - name: "Grasp failed"
+    inject_at_step: 7
+    failure_type: "grasp_failed"
+    expected_recovery: "reposition_and_retry"
+
+# Logging configuration
+logging:
+  enabled: true
+  log_topics:
+    - "/state_machine/current_state"
+    - "/voice/transcription"
+    - "/planning/plan"
+    - "/executor/progress"
+    - "/robot_pose"
+    - "/perception/detections"
+  output_directory: "logs/fetch_demo"
+  record_video: true
+  video_topics:
+    - "/camera/rgb/image_raw"
+
+# Visualization overlays
+visualization:
+  show_planned_path: true
+  show_detection_boxes: true
+  show_grasp_pose: true
+  show_goal_marker: true
+  marker_namespace: "fetch_demo"

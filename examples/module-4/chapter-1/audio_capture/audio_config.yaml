@@ -1,0 +1,46 @@
+# Audio Capture Configuration for Voice Control
+# Compatible with ROS 2 audio_common package
+
+audio_capture_node:
+  ros__parameters:
+    # Audio device settings
+    device: "default"           # ALSA device name (use 'arecord -l' to list)
+    format: "wave"              # Output format (wave, mp3, ogg)
+
+    # Audio format settings (optimized for Whisper)
+    channels: 1                 # Mono audio (Whisper expects mono)
+    sample_rate: 16000          # 16kHz sample rate (Whisper optimal)
+    sample_format: "S16LE"      # 16-bit signed little-endian
+    depth: 16                   # Bit depth
+
+    # Streaming settings
+    chunk_size: 512             # Samples per message (~32ms at 16kHz)
+    bitrate: 128                # Encoding bitrate (for compressed formats)
+
+    # Buffer settings
+    buffer_size: 4096           # Internal buffer size in samples
+    latency: 0.1                # Target latency in seconds
+
+# Alternative configuration for USB microphone
+# Uncomment and modify as needed
+#
+# audio_capture_node:
+#   ros__parameters:
+#     device: "hw:1,0"          # First USB audio device
+#     format: "wave"
+#     channels: 1
+#     sample_rate: 16000
+#     sample_format: "S16LE"
+#     chunk_size: 512
+
+# Configuration for array microphone (e.g., ReSpeaker)
+# Uncomment and modify as needed
+#
+# audio_capture_node:
+#   ros__parameters:
+#     device: "hw:2,0"          # ReSpeaker device
+#     format: "wave"
+#     channels: 6               # 6-channel array
+#     sample_rate: 16000
+#     sample_format: "S16LE"
+#     chunk_size: 512

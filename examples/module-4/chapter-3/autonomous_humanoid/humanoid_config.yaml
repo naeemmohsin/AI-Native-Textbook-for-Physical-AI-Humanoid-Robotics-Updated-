@@ -1,0 +1,260 @@
+# Autonomous Humanoid System Configuration
+# ==========================================
+# Central configuration file for the complete autonomous humanoid system.
+# This file defines all parameters for voice, planning, navigation, and execution.
+
+# System identification
+system:
+  name: "autonomous_humanoid"
+  version: "1.0.0"
+  description: "Voice-controlled autonomous humanoid robot system"
+
+# Robot hardware configuration
+robot:
+  name: "humanoid_robot"
+  base_frame: "base_link"
+  odom_frame: "odom"
+  map_frame: "map"
+
+  # Physical dimensions (meters)
+  dimensions:
+    height: 1.7
+    width: 0.6
+    depth: 0.4
+
+  # Sensor configuration
+  sensors:
+    camera:
+      topic: "/camera/rgb/image_raw"
+      info_topic: "/camera/rgb/camera_info"
+      frame_id: "camera_link"
+      fps: 30
+    depth:
+      topic: "/camera/depth/image_raw"
+      frame_id: "camera_depth_link"
+    microphone:
+      device: "default"
+      sample_rate: 16000
+      channels: 1
+
+  # Actuator limits
+  limits:
+    max_linear_velocity: 0.5  # m/s
+    max_angular_velocity: 1.0  # rad/s
+    max_arm_velocity: 0.3  # rad/s per joint
+
+# Voice subsystem configuration
+voice:
+  # Wake word detection
+  wake_word:
+    enabled: true
+    engine: "porcupine"  # or "openwakeword"
+    keywords: ["hey robot", "okay robot"]
+    sensitivity: 0.5
+
+  # Audio capture
+  audio:
+    sample_rate: 16000
+    channels: 1
+    chunk_duration_ms: 100
+    vad_enabled: true
+    vad_mode: 2  # 0-3, higher = more aggressive
+
+  # Speech-to-text (Whisper)
+  whisper:
+    model: "base"  # tiny, base, small, medium, large
+    device: "cuda"  # cuda or cpu
+    language: "en"
+    task: "transcribe"
+    beam_size: 5
+    fp16: true
+
+  # Intent parsing
+  intent:
+    parser: "hybrid"  # rule_based, llm, or hybrid
+    confidence_threshold: 0.7
+    fallback_to_llm: true
+    command_vocabulary: "config/commands.yaml"
+
+# Planning subsystem configuration
+planning:
+  # LLM configuration
+  llm:
+    provider: "openai"  # openai or ollama
+    model: "gpt-4"
+    api_key_env: "OPENAI_API_KEY"
+    max_tokens: 1024
+    temperature: 0.1  # Low temperature for deterministic planning
+
+    # Ollama fallback
+    ollama:
+      enabled: true
+      endpoint: "http://localhost:11434"
+      model: "llama3"
+
+  # Capability registry
+  capabilities:
+    file: "config/capabilities.yaml"
+    dynamic_discovery: false
+
+  # Planning constraints
+  constraints:
+    max_plan_length: 10  # Maximum actions in a plan
+    planning_timeout_sec: 30
+    require_feasibility_check: true
+
+  # Replanning
+  replanning:
+    enabled: true
+    max_attempts: 3
+    failure_triggers:
+      - navigation_failed
+      - object_not_found
+      - manipulation_failed
+
+# Navigation subsystem configuration (Nav2)
+navigation:
+  # Nav2 configuration
+  nav2:
+    use_sim_time: true
+    bt_navigator:
+      default_bt_xml_filename: "navigate_w_replanning_and_recovery.xml"
+    planner_server:
+      planner_plugin: "nav2_navfn_planner/NavfnPlanner"
+    controller_server:
+      controller_plugin: "dwb_core::DWBLocalPlanner"
+
+  # Location registry for semantic navigation
+  locations:
+    file: "config/locations.yaml"
+    dynamic_update: false
+
+  # Navigation parameters
+  params:
+    goal_tolerance_xy: 0.25  # meters
+    goal_tolerance_yaw: 0.1  # radians
+    path_timeout_sec: 60
+    recovery_enabled: true
+
+# Perception subsystem configuration (Isaac ROS)
+perception:
+  # Object detection
+  detection:
+    enabled: true
+    model: "isaac_ros_detectnet"  # or yolov8
+    confidence_threshold: 0.7
+    nms_threshold: 0.5
+    classes:
+      - bottle
+      - cup
+      - book
+      - remote
+      - phone
+
+  # Visual SLAM
+  visual_slam:
+    enabled: true
+    implementation: "isaac_ros_visual_slam"
+    publish_tf: true
+
+  # Scene understanding
+  scene:
+    maintain_scene_graph: true
+    object_timeout_sec: 30  # Remove objects not seen for this duration
+    update_rate_hz: 10
+
+# Manipulation subsystem configuration
+manipulation:
+  # Simulated manipulation
+  simulation:
+    enabled: true
+    physics_engine: "isaac_sim"
+
+  # Action servers
+  actions:
+    pick:
+      server: "/manipulation/pick"
+      timeout_sec: 30
+    place:
+      server: "/manipulation/place"
+      timeout_sec: 30
+
+  # Grasp planning
+  grasp:
+    planner: "simple"  # simple or gpd
+    approach_distance: 0.1  # meters
+    grasp_depth: 0.02  # meters
+
+# State machine configuration
+state_machine:
+  # State timeouts (seconds)
+  timeouts:
+    idle: 0  # No timeout for idle
+    listening: 10
+    planning: 30
+    executing: 300
+
+  # Error handling
+  error:
+    max_retries: 3
+    recovery_enabled: true
+    announce_errors: true  # Speak error messages
+
+  # Visualization
+  visualization:
+    yasmin_viewer: true
+    viewer_topic: "/state_machine/visualization"
+
+# Monitoring and logging
+monitoring:
+  # ROS 2 Web Bridge
+  rosbridge:
+    enabled: true
+    port: 9090
+    address: "0.0.0.0"
+
+  # Dashboard
+  dashboard:
+    enabled: true
+    port: 8080
+    refresh_rate_hz: 10
+    config_file: "config/dashboard_config.yaml"
+
+  # Logging
+  logging:
+    level: "INFO"  # DEBUG, INFO, WARN, ERROR
+    to_file: true
+    file_path: "logs/humanoid.log"
+    max_file_size_mb: 100
+
+# Simulation settings
+simulation:
+  # Isaac Sim
+  isaac_sim:
+    enabled: true
+    scene_file: "scenes/home_environment.usd"
+    physics_dt: 0.001  # seconds
+    rendering_dt: 0.016  # ~60 FPS
+
+  # Gazebo fallback
+  gazebo:
+    enabled: false
+    world_file: "worlds/home.world"
+
+# Safety configuration
+safety:
+  # Emergency stop
+  e_stop:
+    enabled: true
+    topic: "/e_stop"
+
+  # Collision avoidance
+  collision:
+    enabled: true
+    min_obstacle_distance: 0.3  # meters
+
+  # Speed limits
+  speed_limits:
+    normal: 0.5  # m/s
+    near_human: 0.2  # m/s
+    manipulation: 0.1  # m/s

@@ -1,0 +1,275 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+    Behavior Tree for Fetch Object Task
+
+    This behavior tree implements a complete "fetch object" task:
+    1. Announce intention to user
+    2. Navigate to object location
+    3. Locate and pick up object
+    4. Return to user
+    5. Hand over object
+
+    Uses BehaviorTree.CPP v4 format with ROS 2 action nodes.
+
+    Usage:
+        Load this tree with a BehaviorTree.CPP executor node that has
+        registered the appropriate action nodes for ROS 2 integration.
+-->
+<root BTCPP_format="4" main_tree_to_execute="FetchObjectTree">
+
+    <!-- =================================================================== -->
+    <!-- Main Fetch Object Behavior Tree                                      -->
+    <!-- =================================================================== -->
+    <BehaviorTree ID="FetchObjectTree">
+        <Sequence name="fetch_object_sequence">
+
+            <!-- Step 1: Announce intention -->
+            <Action ID="SpeakAction"
+                    message="I will fetch the {object_name} for you"
+                    wait_for_completion="true"/>
+
+            <!-- Step 2: Navigate to object with recovery -->
+            <SubTree ID="NavigateWithRecovery"
+                     target="{object_location}"
+                     _autoremap="true"/>
+
+            <!-- Step 3: Locate object in scene -->
+            <Action ID="LocateObjectAction"
+                    object_type="{object_type}"
+                    search_area="current"
+                    detected_id="{detected_object_id}"/>
+
+            <!-- Step 4: Approach object -->
+            <Action ID="ApproachObjectAction"
+                    object_id="{detected_object_id}"
+                    approach_distance="0.5"/>
+
+            <!-- Step 5: Pick object with retry -->
+            <SubTree ID="PickWithRetry"
+                     object_id="{detected_object_id}"
+                     _autoremap="true"/>
+
+            <!-- Step 6: Return to user -->
+            <SubTree ID="NavigateWithRecovery"
+                     target="user"
+                     _autoremap="true"/>
+
+            <!-- Step 7: Hand over object -->
+            <Action ID="PlaceObjectAction"
+                    target="user_hand"
+                    placement_type="handover"/>
+
+            <!-- Step 8: Confirm delivery -->
+            <Action ID="SpeakAction"
+                    message="Here is your {object_name}"
+                    wait_for_completion="true"/>
+
+        </Sequence>
+    </BehaviorTree>
+
+    <!-- =================================================================== -->
+    <!-- Navigation with Recovery Subtree                                     -->
+    <!-- =================================================================== -->
+    <BehaviorTree ID="NavigateWithRecovery">
+        <Fallback name="navigation_fallback">
+
+            <!-- Primary navigation attempt -->
+            <Action ID="NavigateToAction"
+                    target="{target}"
+                    speed="0.5"/>
+
+            <!-- Recovery sequence -->
+            <Sequence name="navigation_recovery">
+                <Action ID="SpeakAction"
+                        message="Path blocked, finding alternative route"/>
+
+                <!-- Clear costmap and wait -->
+                <Action ID="ClearCostmapAction"/>
+                <Action ID="WaitAction" duration="2.0"/>
+
+                <!-- Retry navigation -->
+                <Action ID="NavigateToAction"
+                        target="{target}"
+                        speed="0.3"/>
+            </Sequence>
+
+            <!-- Final fallback: announce failure -->
+            <Sequence name="navigation_failure">
+                <Action ID="SpeakAction"
+                        message="I cannot reach the destination. Please help me."/>
+                <Action ID="SetBlackboardAction"
+                        key="navigation_failed"
+                        value="true"/>
+            </Sequence>
+
+        </Fallback>
+    </BehaviorTree>
+
+    <!-- =================================================================== -->
+    <!-- Pick Object with Retry Subtree                                       -->
+    <!-- =================================================================== -->
+    <BehaviorTree ID="PickWithRetry">
+        <Fallback name="pick_fallback">
+
+            <!-- First attempt: side grasp -->
+            <Action ID="PickObjectAction"
+                    object_id="{object_id}"
+                    grasp_type="side"/>
+
+            <!-- Second attempt: top grasp -->
+            <Sequence name="retry_top_grasp">
+                <Action ID="SpeakAction"
+                        message="Adjusting grasp approach"/>
+                <Action ID="PickObjectAction"
+                        object_id="{object_id}"
+                        grasp_type="top"/>
+            </Sequence>
+
+            <!-- Third attempt: pinch grasp -->
+            <Sequence name="retry_pinch_grasp">
+                <Action ID="SpeakAction"
+                        message="Trying precision grasp"/>
+                <Action ID="PickObjectAction"
+                        object_id="{object_id}"
+                        grasp_type="pinch"/>
+            </Sequence>
+
+            <!-- Failure: cannot pick object -->
+            <Sequence name="pick_failure">
+                <Action ID="SpeakAction"
+                        message="I cannot pick up this object. It may be too heavy or in an awkward position."/>
+                <Action ID="SetBlackboardAction"
+                        key="pick_failed"
+                        value="true"/>
+            </Sequence>
+
+        </Fallback>
+    </BehaviorTree>
+
+    <!-- =================================================================== -->
+    <!-- Place Object with Verification Subtree                               -->
+    <!-- =================================================================== -->
+    <BehaviorTree ID="PlaceWithVerification">
+        <Sequence name="place_sequence">
+
+            <!-- Attempt placement -->
+            <Action ID="PlaceObjectAction"
+                    target="{target_location}"
+                    placement_type="careful"/>
+
+            <!-- Verify placement success -->
+            <Fallback name="verify_placement">
+                <Condition ID="GripperEmptyCondition"/>
+                <Sequence name="placement_retry">
+                    <Action ID="SpeakAction"
+                            message="Placement may have failed, retrying"/>
+                    <Action ID="OpenGripperAction"/>
+                    <Action ID="WaitAction" duration="1.0"/>
+                </Sequence>
+            </Fallback>
+
+        </Sequence>
+    </BehaviorTree>
+
+    <!-- =================================================================== -->
+    <!-- Error Recovery Subtree                                               -->
+    <!-- =================================================================== -->
+    <BehaviorTree ID="ErrorRecovery">
+        <Fallback name="error_recovery_fallback">
+
+            <!-- Minor recovery: wait and retry -->
+            <Sequence name="minor_recovery">
+                <Action ID="SpeakAction"
+                        message="Encountered an issue, attempting recovery"/>
+                <Action ID="WaitAction" duration="3.0"/>
+                <Action ID="RetryLastActionAction"/>
+            </Sequence>
+
+            <!-- Major recovery: return home -->
+            <Sequence name="major_recovery">
+                <Action ID="SpeakAction"
+                        message="Unable to complete task safely. Returning to home base."/>
+                <Action ID="NavigateToAction"
+                        target="home"
+                        speed="0.3"/>
+            </Sequence>
+
+            <!-- Critical: stop and alert -->
+            <Sequence name="critical_recovery">
+                <Action ID="EmergencyStopAction"/>
+                <Action ID="SpeakAction"
+                        message="Emergency stop activated. Please check the robot."/>
+            </Sequence>
+
+        </Fallback>
+    </BehaviorTree>
+
+    <!-- =================================================================== -->
+    <!-- Patrol Area Subtree                                                  -->
+    <!-- =================================================================== -->
+    <BehaviorTree ID="PatrolArea">
+        <Sequence name="patrol_sequence">
+
+            <Action ID="SpeakAction"
+                    message="Starting patrol of {area_name}"/>
+
+            <!-- Visit waypoints -->
+            <ForEach name="visit_waypoints"
+                     array="{waypoints}"
+                     item="{current_waypoint}">
+
+                <Sequence name="visit_waypoint">
+                    <SubTree ID="NavigateWithRecovery"
+                             target="{current_waypoint}"
+                             _autoremap="true"/>
+                    <Action ID="ScanAreaAction"
+                            detail_level="quick"/>
+                    <Action ID="WaitAction" duration="2.0"/>
+                </Sequence>
+
+            </ForEach>
+
+            <Action ID="SpeakAction"
+                    message="Patrol complete. No issues detected."/>
+
+        </Sequence>
+    </BehaviorTree>
+
+    <!-- =================================================================== -->
+    <!-- Interactive Demo Subtree                                             -->
+    <!-- =================================================================== -->
+    <BehaviorTree ID="InteractiveDemo">
+        <Sequence name="demo_sequence">
+
+            <Action ID="SpeakAction"
+                    message="Starting interactive demonstration"/>
+
+            <!-- Wave greeting -->
+            <Action ID="WaveAction"/>
+
+            <!-- Demonstrate navigation -->
+            <Action ID="SpeakAction"
+                    message="Watch me navigate to the kitchen"/>
+            <SubTree ID="NavigateWithRecovery"
+                     target="kitchen"
+                     _autoremap="true"/>
+
+            <!-- Demonstrate perception -->
+            <Action ID="SpeakAction"
+                    message="I can see objects around me"/>
+            <Action ID="ScanAreaAction" detail_level="detailed"/>
+
+            <!-- Return home -->
+            <Action ID="SpeakAction"
+                    message="Returning to home position"/>
+            <SubTree ID="NavigateWithRecovery"
+                     target="home"
+                     _autoremap="true"/>
+
+            <Action ID="SpeakAction"
+                    message="Demonstration complete. How can I help you?"/>
+
+        </Sequence>
+    </BehaviorTree>
+
+</root>

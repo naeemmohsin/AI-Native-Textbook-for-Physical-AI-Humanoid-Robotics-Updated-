@@ -1,0 +1,183 @@
+# Custom Command Definitions for Voice Control
+# These commands supplement the built-in pattern matching
+#
+# Format:
+#   "trigger phrase":
+#     action: action_name
+#     target: optional_target
+#     parameters:
+#       key: value
+
+commands:
+  # Navigation shortcuts
+  "go to charging station":
+    action: navigate
+    target: charging_station
+    parameters:
+      priority: high
+      dock: true
+
+  "come here":
+    action: navigate
+    target: operator
+    parameters:
+      follow: false
+
+  "follow me":
+    action: follow
+    target: operator
+    parameters:
+      distance: 1.5
+      timeout: 300
+
+  "patrol the area":
+    action: patrol
+    target: current_zone
+    parameters:
+      duration: 300
+      waypoints: auto
+
+  "go home":
+    action: navigate
+    target: home_base
+    parameters:
+      priority: normal
+
+  # Manipulation shortcuts
+  "fetch my coffee":
+    action: fetch
+    target: coffee_cup
+    parameters:
+      delivery_location: operator
+      careful: true
+
+  "bring me water":
+    action: fetch
+    target: water_bottle
+    parameters:
+      delivery_location: operator
+
+  "clean up":
+    action: tidy
+    target: current_area
+    parameters:
+      mode: organize
+
+  "put that back":
+    action: return_object
+    target: held_object
+    parameters:
+      location: original
+
+  # Emergency and safety commands
+  "emergency stop":
+    action: emergency_stop
+    parameters:
+      priority: critical
+      notify: true
+
+  "all stop":
+    action: stop
+    parameters:
+      priority: high
+
+  # Status and information
+  "battery status":
+    action: query
+    target: battery
+    parameters:
+      report: spoken
+
+  "what do you see":
+    action: describe_scene
+    parameters:
+      detail: medium
+
+  # Demo scenarios
+  "start demo":
+    action: demo
+    target: default
+    parameters:
+      mode: interactive
+
+  "show capabilities":
+    action: demo
+    target: capabilities
+    parameters:
+      mode: showcase
+
+# Object synonyms - maps alternative names to canonical object names
+object_synonyms:
+  cup:
+    - mug
+    - glass
+    - tumbler
+    - drinking glass
+  bottle:
+    - water bottle
+    - drink bottle
+    - container
+  phone:
+    - mobile
+    - cell phone
+    - smartphone
+    - cellphone
+  remote:
+    - controller
+    - tv remote
+    - remote control
+  box:
+    - package
+    - parcel
+    - carton
+  book:
+    - notebook
+    - textbook
+    - manual
+
+# Location aliases - maps spoken locations to coordinate frames
+location_aliases:
+  kitchen:
+    - cooking area
+    - food prep area
+    - galley
+  living room:
+    - lounge
+    - sitting area
+    - family room
+    - den
+  bedroom:
+    - sleeping area
+    - master bedroom
+  garage:
+    - car port
+    - workshop
+    - parking
+  office:
+    - study
+    - work room
+    - home office
+  bathroom:
+    - restroom
+    - washroom
+
+# Confirmation phrases
+confirmations:
+  positive:
+    - "yes"
+    - "yeah"
+    - "yep"
+    - "correct"
+    - "affirmative"
+    - "that's right"
+    - "go ahead"
+    - "proceed"
+  negative:
+    - "no"
+    - "nope"
+    - "negative"
+    - "cancel"
+    - "abort"
+    - "stop"
+    - "never mind"
+    - "forget it"

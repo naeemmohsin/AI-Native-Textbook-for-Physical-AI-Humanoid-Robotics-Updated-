@@ -1,0 +1,239 @@
+# Monitoring Dashboard Configuration
+# ===================================
+# Configuration for the web-based monitoring dashboard that displays
+# real-time system state, voice activity, planning progress, and robot status.
+
+# Dashboard server settings
+server:
+  port: 8080
+  host: "0.0.0.0"
+  refresh_rate_hz: 10
+  websocket_port: 9090  # ROS bridge port
+
+# Layout configuration
+layout:
+  columns: 4
+  rows: 6
+  background_color: "#1a1a2e"
+  panel_color: "#16213e"
+  accent_color: "#0f3460"
+  text_color: "#e0e0e0"
+
+# Panel definitions
+panels:
+  # Row 1: System Overview
+  - name: "System State"
+    type: "state_indicator"
+    position:
+      x: 0
+      y: 0
+      width: 2
+      height: 1
+    topic: "/state_machine/current_state"
+    message_type: "std_msgs/String"
+    states:
+      idle:
+        color: "#4caf50"
+        label: "IDLE"
+      listening:
+        color: "#2196f3"
+        label: "LISTENING"
+      planning:
+        color: "#ff9800"
+        label: "PLANNING"
+      executing:
+        color: "#9c27b0"
+        label: "EXECUTING"
+      error:
+        color: "#f44336"
+        label: "ERROR"
+
+  - name: "System Health"
+    type: "health_grid"
+    position:
+      x: 2
+      y: 0
+      width: 2
+      height: 1
+    topics:
+      voice: "/voice/status"
+      planning: "/planning/status"
+      navigation: "/nav2/status"
+      perception: "/perception/status"
+
+  # Row 2: Voice Subsystem
+  - name: "Audio Level"
+    type: "gauge"
+    position:
+      x: 0
+      y: 1
+      width: 1
+      height: 1
+    topic: "/voice/audio_level"
+    message_type: "std_msgs/Float32"
+    min_value: 0.0
+    max_value: 1.0
+    unit: ""
+    thresholds:
+      warning: 0.8
+      critical: 0.95
+    colors:
+      normal: "#4caf50"
+      warning: "#ff9800"
+      critical: "#f44336"
+
+  - name: "Transcription"
+    type: "text_display"
+    position:
+      x: 1
+      y: 1
+      width: 2
+      height: 1
+    topic: "/voice/transcription"
+    message_type: "std_msgs/String"
+    max_lines: 3
+    font_size: 16
+    show_timestamp: true
+
+  - name: "Current Intent"
+    type: "json_display"
+    position:
+      x: 3
+      y: 1
+      width: 1
+      height: 1
+    topic: "/voice/intent"
+    message_type: "std_msgs/String"
+    format: "yaml"
+    font_size: 12
+
+  # Row 3: Planning Subsystem
+  - name: "Current Plan"
+    type: "action_list"
+    position:
+      x: 0
+      y: 2
+      width: 2
+      height: 2
+    topic: "/planning/plan"
+    message_type: "std_msgs/String"
+    show_progress: true
+    highlight_current: true
+    action_colors:
+      navigate: "#2196f3"
+      detect: "#9c27b0"
+      pick: "#ff9800"
+      place: "#4caf50"
+      speak: "#00bcd4"
+
+  - name: "Execution Progress"
+    type: "progress_bar"
+    position:
+      x: 2
+      y: 2
+      width: 2
+      height: 1
+    topic: "/executor/progress"
+    message_type: "std_msgs/String"
+    show_percentage: true
+    show_step: true
+    color: "#4caf50"
+
+  - name: "Execution Log"
+    type: "log_viewer"
+    position:
+      x: 2
+      y: 3
+      width: 2
+      height: 1
+    topic: "/executor/log"
+    message_type: "std_msgs/String"
+    max_entries: 10
+    log_levels:
+      info: "#4caf50"
+      warning: "#ff9800"
+      error: "#f44336"
+
+  # Row 4-5: Robot View
+  - name: "Camera Feed"
+    type: "image"
+    position:
+      x: 0
+      y: 4
+      width: 2
+      height: 2
+    topic: "/camera/rgb/image_raw"
+    message_type: "sensor_msgs/Image"
+    encoding: "bgr8"
+    show_detections: true
+    detections_topic: "/perception/detections"
+    detection_color: "#00ff00"
+    detection_thickness: 2
+
+  - name: "Robot Position"
+    type: "2d_map"
+    position:
+      x: 2
+      y: 4
+      width: 2
+      height: 2
+    topics:
+      map: "/map"
+      pose: "/robot_pose"
+      path: "/nav2/plan"
+      goal: "/nav2/goal"
+    colors:
+      robot: "#2196f3"
+      path: "#4caf50"
+      goal: "#f44336"
+      obstacles: "#9e9e9e"
+    show_orientation: true
+    show_footprint: true
+
+# Alert configuration
+alerts:
+  enabled: true
+  position: "top-right"
+  duration_sec: 5
+  sources:
+    - topic: "/state_machine/error"
+      level: "error"
+      prefix: "State Machine"
+    - topic: "/nav2/recoveries"
+      level: "warning"
+      prefix: "Navigation"
+    - topic: "/perception/lost_tracking"
+      level: "warning"
+      prefix: "Perception"
+
+# Topic subscriptions for data logging
+logging:
+  enabled: true
+  topics:
+    - "/state_machine/current_state"
+    - "/voice/transcription"
+    - "/voice/intent"
+    - "/planning/plan"
+    - "/executor/progress"
+    - "/robot_pose"
+  buffer_size: 1000
+  export_format: "json"
+
+# Keyboard shortcuts
+shortcuts:
+  emergency_stop: "Escape"
+  toggle_voice: "v"
+  reset_system: "r"
+  take_screenshot: "s"
+
+# Theme customization
+theme:
+  name: "dark"
+  fonts:
+    primary: "Roboto, sans-serif"
+    monospace: "Fira Code, monospace"
+  sizes:
+    header: 24
+    title: 18
+    body: 14
+    small: 12

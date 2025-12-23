@@ -1,0 +1,13 @@
+{
+  "label": "Module 4: Vision-Language-Action (VLA)",
+  "position": 4,
+  "link": {
+    "type": "generated-index",
+    "description": "Voice-controlled robotics with LLM-based cognitive planning and autonomous system integration."
+  },
+  "customProps": {
+    "duration": "4-5 hours",
+    "difficulty": "Advanced",
+    "prerequisites": ["Module 1: ROS 2 Fundamentals", "Module 2: Digital Twin", "Module 3: NVIDIA Isaac"]
+  }
+}

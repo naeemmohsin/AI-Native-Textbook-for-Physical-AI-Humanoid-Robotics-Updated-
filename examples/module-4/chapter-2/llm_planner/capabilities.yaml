@@ -1,0 +1,305 @@
+# Robot Capability Registry
+# Defines what actions the robot can perform for LLM-based planning
+#
+# Each capability includes:
+# - name: Unique identifier used in action plans
+# - description: Natural language description for LLM context
+# - action_server: ROS 2 action server path (null for local implementation)
+# - parameters: List of parameter definitions
+# - preconditions: Conditions that must be true before execution
+# - effects: State changes after successful execution
+# - timeout: Maximum execution time in seconds
+
+robot:
+  name: "humanoid_assistant"
+  version: "1.0.0"
+  description: "Humanoid service robot with navigation, manipulation, and communication capabilities"
+
+capabilities:
+  # === Navigation Capabilities ===
+
+  - name: navigate_to
+    description: "Move the robot to a specified location or named place"
+    action_server: /navigate_to_pose
+    parameters:
+      - name: target
+        type: string
+        description: "Target location name (kitchen, living_room, etc.) or 'user'"
+        required: true
+      - name: speed
+        type: float
+        description: "Navigation speed (0.1-1.0)"
+        default: 0.5
+        range: [0.1, 1.0]
+        required: false
+    preconditions:
+      - "robot.localized == true"
+      - "robot.battery > 10"
+    effects:
+      - "robot.location = target"
+    timeout: 120.0
+
+  - name: approach_object
+    description: "Move close to a detected object for manipulation"
+    action_server: /approach_object
+    parameters:
+      - name: object_id
+        type: string
+        description: "ID of object to approach"
+        required: true
+      - name: approach_distance
+        type: float
+        description: "Distance to stop from object (meters)"
+        default: 0.5
+        required: false
+    preconditions:
+      - "object.detected == true"
+    effects:
+      - "robot.near_object = object_id"
+    timeout: 60.0
+
+  # === Manipulation Capabilities ===
+
+  - name: pick_object
+    description: "Pick up an object using the gripper"
+    action_server: /pick_object
+    parameters:
+      - name: object_id
+        type: string
+        description: "ID of object to pick (from perception)"
+        required: true
+      - name: grasp_type
+        type: string
+        description: "Type of grasp to use"
+        enum: ["top", "side", "pinch"]
+        default: "side"
+        required: false
+    preconditions:
+      - "robot.gripper.state == 'open'"
+      - "robot.near_object == object_id"
+      - "object.reachable == true"
+    effects:
+      - "robot.gripper.holding = object_id"
+      - "robot.gripper.state = 'closed'"
+    timeout: 30.0
+
+  - name: place_object
+    description: "Place the currently held object at a target location"
+    action_server: /place_object
+    parameters:
+      - name: target
+        type: string
+        description: "Where to place the object (surface name or 'user_hand')"
+        required: true
+      - name: placement_type
+        type: string
+        description: "How to place the object"
+        enum: ["drop", "careful", "handover"]
+        default: "careful"
+        required: false
+    preconditions:
+      - "robot.gripper.holding != null"
+    effects:
+      - "robot.gripper.holding = null"
+      - "robot.gripper.state = 'open'"
+    timeout: 30.0
+
+  - name: open_gripper
+    description: "Open the robot's gripper"
+    action_server: /gripper_control
+    parameters: []
+    preconditions: []
+    effects:
+      - "robot.gripper.state = 'open'"
+    timeout: 5.0
+
+  - name: close_gripper
+    description: "Close the robot's gripper"
+    action_server: /gripper_control
+    parameters: []
+    preconditions: []
+    effects:
+      - "robot.gripper.state = 'closed'"
+    timeout: 5.0
+
+  # === Perception Capabilities ===
+
+  - name: locate_object
+    description: "Search for and locate a specific object in the scene"
+    action_server: /locate_object
+    parameters:
+      - name: object_type
+        type: string
+        description: "Type of object to find (cup, bottle, book, etc.)"
+        required: true
+      - name: search_area
+        type: string
+        description: "Area to search (current, room_name, or 'all')"
+        default: "current"
+        required: false
+    preconditions: []
+    effects:
+      - "object.detected = true"
+      - "object.id = detected_object_id"
+    timeout: 30.0
+
+  - name: scan_area
+    description: "Scan the current area and detect all objects"
+    action_server: /scan_area
+    parameters:
+      - name: detail_level
+        type: string
+        description: "Level of detail for detection"
+        enum: ["quick", "normal", "detailed"]
+        default: "normal"
+        required: false
+    preconditions: []
+    effects:
+      - "scene.updated = true"
+    timeout: 20.0
+
+  - name: identify_object
+    description: "Get detailed information about a specific object"
+    action_server: /identify_object
+    parameters:
+      - name: object_id
+        type: string
+        description: "Object to identify"
+        required: true
+    preconditions:
+      - "object.detected == true"
+    effects: []
+    timeout: 10.0
+
+  # === Communication Capabilities ===
+
+  - name: speak
+    description: "Speak a message to the user using text-to-speech"
+    action_server: /speak
+    parameters:
+      - name: message
+        type: string
+        description: "Message to speak"
+        required: true
+      - name: language
+        type: string
+        description: "Language code"
+        default: "en"
+        required: false
+      - name: wait_for_completion
+        type: bool
+        description: "Whether to wait for speech to complete"
+        default: true
+        required: false
+    preconditions: []
+    effects: []
+    timeout: 30.0
+
+  - name: ask_confirmation
+    description: "Ask the user a yes/no question and wait for response"
+    action_server: /ask_confirmation
+    parameters:
+      - name: question
+        type: string
+        description: "Question to ask"
+        required: true
+      - name: timeout
+        type: float
+        description: "How long to wait for response"
+        default: 10.0
+        required: false
+    preconditions: []
+    effects:
+      - "user.response = confirmed/denied"
+    timeout: 30.0
+
+  # === Utility Capabilities ===
+
+  - name: wait
+    description: "Wait for a specified duration"
+    action_server: null
+    parameters:
+      - name: duration
+        type: float
+        description: "Time to wait in seconds"
+        required: true
+        range: [0.1, 60.0]
+    preconditions: []
+    effects: []
+    timeout: 65.0
+
+  - name: check_battery
+    description: "Check current battery level"
+    action_server: null
+    parameters: []
+    preconditions: []
+    effects: []
+    timeout: 1.0
+
+  - name: go_home
+    description: "Return to the home/charging station"
+    action_server: /navigate_to_pose
+    parameters: []
+    preconditions: []
+    effects:
+      - "robot.location = 'home'"
+    timeout: 180.0
+
+  - name: emergency_stop
+    description: "Immediately stop all robot motion"
+    action_server: null
+    parameters: []
+    preconditions: []
+    effects:
+      - "robot.motion = 'stopped'"
+    timeout: 0.1
+
+# Named locations in the environment
+locations:
+  kitchen:
+    x: 5.0
+    y: 2.0
+    theta: 0.0
+    description: "Kitchen area with counter and appliances"
+
+  living_room:
+    x: 0.0
+    y: 0.0
+    theta: 0.0
+    description: "Main living room area"
+
+  bedroom:
+    x: -3.0
+    y: 4.0
+    theta: 1.57
+    description: "Bedroom"
+
+  office:
+    x: 2.0
+    y: -3.0
+    theta: 3.14
+    description: "Home office with desk"
+
+  home:
+    x: 0.0
+    y: 0.0
+    theta: 0.0
+    description: "Home base / charging station"
+
+  entrance:
+    x: 8.0
+    y: 0.0
+    theta: 0.0
+    description: "Front entrance"
+
+# Known object types
+object_types:
+  - cup
+  - bottle
+  - book
+  - phone
+  - remote
+  - keys
+  - glasses
+  - plate
+  - bowl

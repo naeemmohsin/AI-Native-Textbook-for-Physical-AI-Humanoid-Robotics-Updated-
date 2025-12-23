@@ -1,0 +1,264 @@
+# Demo Scenario: Navigate and Report
+# ===================================
+# Alternative demo scenario where the robot navigates to a location
+# and reports what it observes, demonstrating perception integration.
+
+scenario:
+  name: "Navigate and Report"
+  description: |
+    The robot receives a voice command to go to a specific room and report
+    what objects it sees. This demonstrates the integration of voice control,
+    navigation, and perception without manipulation.
+  version: "1.0"
+  estimated_duration_sec: 60
+
+# Environment configuration
+environment:
+  name: "Home Environment"
+  simulation:
+    engine: "isaac_sim"
+    scene_file: "scenes/home_environment.usd"
+    physics_dt: 0.001
+
+  # Room definitions
+  rooms:
+    living_room:
+      center: {x: 2.0, y: 2.0, z: 0.0}
+      description: "Main living area with couch and TV"
+    kitchen:
+      center: {x: 6.0, y: 2.0, z: 0.0}
+      description: "Kitchen with table and appliances"
+    bedroom:
+      center: {x: 2.0, y: 6.0, z: 0.0}
+      description: "Bedroom with bed and desk"
+    bathroom:
+      center: {x: 6.0, y: 6.0, z: 0.0}
+      description: "Bathroom with sink and mirror"
+
+  # Objects in each room (for detection)
+  objects:
+    # Kitchen objects
+    water_bottle:
+      class: "bottle"
+      room: "kitchen"
+      pose:
+        position: {x: 6.5, y: 2.5, z: 0.8}
+
+    coffee_mug:
+      class: "cup"
+      room: "kitchen"
+      pose:
+        position: {x: 6.2, y: 2.3, z: 0.8}
+
+    fruit_bowl:
+      class: "bowl"
+      room: "kitchen"
+      pose:
+        position: {x: 6.8, y: 2.7, z: 0.8}
+
+    # Living room objects
+    remote_control:
+      class: "remote"
+      room: "living_room"
+      pose:
+        position: {x: 2.5, y: 2.0, z: 0.5}
+
+    book:
+      class: "book"
+      room: "living_room"
+      pose:
+        position: {x: 1.8, y: 2.2, z: 0.5}
+
+    # Bedroom objects
+    phone:
+      class: "phone"
+      room: "bedroom"
+      pose:
+        position: {x: 2.3, y: 6.2, z: 0.7}
+
+    laptop:
+      class: "laptop"
+      room: "bedroom"
+      pose:
+        position: {x: 1.5, y: 5.8, z: 0.75}
+
+# Robot initial state
+robot:
+  initial_pose:
+    position: {x: 4.0, y: 4.0, z: 0.0}  # Center of environment
+    orientation: {x: 0.0, y: 0.0, z: 0.0, w: 1.0}
+  initial_state: "idle"
+
+# Voice command variants
+voice_commands:
+  - trigger: "hey robot"
+    command: "go to the kitchen and tell me what you see"
+    target_room: "kitchen"
+    expected_objects: ["bottle", "cup", "bowl"]
+
+  - trigger: "hey robot"
+    command: "check the living room and report"
+    target_room: "living_room"
+    expected_objects: ["remote", "book"]
+
+  - trigger: "hey robot"
+    command: "look around the bedroom"
+    target_room: "bedroom"
+    expected_objects: ["phone", "laptop"]
+
+# Primary demo sequence (kitchen variant)
+expected_sequence:
+  - step: 1
+    action: "wake_word_detected"
+    description: "System activates on wake word"
+    timeout_sec: 2
+
+  - step: 2
+    action: "transcription_complete"
+    description: "Voice command transcribed"
+    expected_text: "go to the kitchen and tell me what you see"
+    timeout_sec: 5
+
+  - step: 3
+    action: "intent_parsed"
+    description: "Intent extracted from transcription"
+    expected_intent:
+      action: "navigate_and_report"
+      location: "kitchen"
+    timeout_sec: 2
+
+  - step: 4
+    action: "plan_generated"
+    description: "Action plan generated"
+    expected_actions:
+      - {type: "navigate", target: "kitchen"}
+      - {type: "scan", mode: "360"}
+      - {type: "detect_all", duration_sec: 5}
+      - {type: "report", format: "natural_language"}
+    timeout_sec: 10
+
+  - step: 5
+    action: "navigate_to_room"
+    description: "Robot navigates to kitchen"
+    expected_pose:
+      position: {x: 6.0, y: 2.0, z: 0.0}
+      tolerance: {xy: 0.5, yaw: 0.3}
+    timeout_sec: 20
+
+  - step: 6
+    action: "perform_scan"
+    description: "Robot rotates to scan the room"
+    scan_angles: [0, 90, 180, 270]
+    timeout_sec: 15
+
+  - step: 7
+    action: "detect_objects"
+    description: "Robot detects objects in scene"
+    expected_detections:
+      - class: "bottle"
+        min_confidence: 0.7
+      - class: "cup"
+        min_confidence: 0.7
+    timeout_sec: 10
+
+  - step: 8
+    action: "generate_report"
+    description: "Generate natural language report"
+    report_template: |
+      I found {count} objects in the {room}:
+      {object_list}
+    timeout_sec: 5
+
+  - step: 9
+    action: "speak_report"
+    description: "Robot speaks the report"
+    expected_speech_contains:
+      - "bottle"
+      - "cup"
+      - "kitchen"
+    timeout_sec: 10
+
+  - step: 10
+    action: "task_complete"
+    description: "Return to idle state"
+    timeout_sec: 2
+
+# Success criteria
+success_criteria:
+  required:
+    - voice_command_recognized: true
+    - intent_correct: true
+    - navigation_succeeded: true
+    - scan_completed: true
+    - objects_detected: true
+    - report_generated: true
+
+  metrics:
+    total_time_sec:
+      max: 60
+      target: 45
+    objects_detected_count:
+      min: 2
+      target: 3
+    detection_accuracy:
+      min: 0.8
+      target: 0.9
+
+# Report generation configuration
+report_generation:
+  format: "natural_language"
+  include:
+    - object_classes: true
+    - object_count: true
+    - spatial_relations: true
+    - confidence_levels: false
+
+  templates:
+    found_objects: "I found {count} objects in the {room}: {objects}."
+    no_objects: "I didn't find any recognizable objects in the {room}."
+    high_confidence: "I'm confident I saw a {object}."
+    low_confidence: "I think I might have seen a {object}, but I'm not sure."
+
+  spatial_descriptions:
+    on_table: "on the table"
+    on_floor: "on the floor"
+    near_wall: "near the wall"
+    center: "in the center of the room"
+
+# Perception configuration for this demo
+perception:
+  detection:
+    classes_of_interest:
+      - bottle
+      - cup
+      - bowl
+      - remote
+      - book
+      - phone
+      - laptop
+    confidence_threshold: 0.6
+    nms_threshold: 0.5
+
+  scan:
+    mode: "rotate_in_place"
+    rotation_speed_deg_sec: 30
+    pause_at_angles: [0, 90, 180, 270]
+    pause_duration_sec: 2
+
+# Logging configuration
+logging:
+  enabled: true
+  log_topics:
+    - "/state_machine/current_state"
+    - "/voice/transcription"
+    - "/perception/detections"
+    - "/robot_pose"
+  output_directory: "logs/navigate_report_demo"
+  record_video: true
+
+# Visualization
+visualization:
+  show_scan_progress: true
+  show_detection_boxes: true
+  show_detection_labels: true
+  highlight_reported_objects: true
