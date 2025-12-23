@@ -605,7 +605,7 @@ You are a robot task planner for a humanoid service robot. Your job is to conver
 - Safety is the top priority
 
 ## Available Capabilities
-{{CAPABILITIES}}
+[CAPABILITIES]
 
 ## Planning Guidelines
 
@@ -644,15 +644,14 @@ You are a robot task planner for a humanoid service robot. Your job is to conver
   "steps": [
     {"action": "navigate_to", "parameters": {"target": "table"}},
     {"action": "scan_surface", "parameters": {"target": "table"}},
-    {"action": "speak", "parameters": {"message": "{{DETECTED_OBJECTS}}"}}
+    {"action": "speak", "parameters": {"message": "[DETECTED_OBJECTS]"}}
   ],
   "estimated_duration": 30,
   "confidence": 0.9
 }
-```
 
 ## Current Task
-{{USER_COMMAND}}
+[USER_COMMAND]
 
 Generate an action plan following the JSON format above.
 ```

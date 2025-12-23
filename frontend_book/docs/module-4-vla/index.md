@@ -69,11 +69,11 @@ Before starting this module, ensure you have:
 
 By the end of this module, you will be able to:
 
-- [ ] Achieve >90% speech transcription accuracy with Whisper
-- [ ] Recognize robot intents with >85% accuracy
-- [ ] Generate action plans in <5 seconds
-- [ ] Complete autonomous tasks with >80% success rate
-- [ ] Recover from failures with >70% success rate
+- [ ] Achieve greater than 90% speech transcription accuracy with Whisper
+- [ ] Recognize robot intents with greater than 85% accuracy
+- [ ] Generate action plans in under 5 seconds
+- [ ] Complete autonomous tasks with greater than 80% success rate
+- [ ] Recover from failures with greater than 70% success rate
 - [ ] Execute the "fetch the water bottle" capstone demo
 
 ## Getting Started
