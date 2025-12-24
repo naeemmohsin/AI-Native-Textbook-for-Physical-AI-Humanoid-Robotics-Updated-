@@ -25,8 +25,16 @@ const config: Config = {
   projectName: 'textbook', // Your repo name.
   trailingSlash: false,
 
-  onBrokenLinks: 'throw',
-  onBrokenMarkdownLinks: 'warn',
+  //onBrokenLinks: 'throw',
+  //onBrokenMarkdownLinks: 'warn',
+
+  
+  markdown: {
+    hooks: {
+      onBrokenMarkdownLinks: 'warn', // or 'throw' or 'ignore'
+    },
+  },
+
 
   // Useful metadata like html lang
   i18n: {
