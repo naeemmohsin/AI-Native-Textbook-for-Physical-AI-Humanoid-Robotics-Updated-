@@ -1,55 +1,66 @@
 import type {ReactNode} from 'react';
 import clsx from 'clsx';
 import Heading from '@theme/Heading';
+import Link from '@docusaurus/Link';
 import styles from './styles.module.css';
 
 type FeatureItem = {
   title: string;
-  Svg: React.ComponentType<React.ComponentProps<'svg'>>;
+  icon: string;
   description: ReactNode;
+  link: string;
 };
 
 const FeatureList: FeatureItem[] = [
   {
-    title: 'Easy to Use',
-    Svg: require('@site/static/img/undraw_docusaurus_mountain.svg').default,
+    title: 'ROS 2 Fundamentals',
+    icon: '🤖',
     description: (
       <>
-        Docusaurus was designed from the ground up to be easily installed and
-        used to get your website up and running quickly.
+        Master the Robot Operating System 2 (ROS 2) - the foundation for modern
+        robotics development. Learn nodes, topics, services, and actions.
       </>
     ),
+    link: '/docs/module-1-ros2',
   },
   {
-    title: 'Focus on What Matters',
-    Svg: require('@site/static/img/undraw_docusaurus_tree.svg').default,
+    title: 'NVIDIA Isaac',
+    icon: '🧠',
     description: (
       <>
-        Docusaurus lets you focus on your docs, and we&apos;ll do the chores. Go
-        ahead and move your docs into the <code>docs</code> directory.
+        Build AI-powered robot brains with NVIDIA Isaac. Explore simulation,
+        perception, and hardware acceleration for physical AI systems.
       </>
     ),
+    link: '/docs/module-3-nvidia-isaac',
   },
   {
-    title: 'Powered by React',
-    Svg: require('@site/static/img/undraw_docusaurus_react.svg').default,
+    title: 'Vision-Language-Action',
+    icon: '👁️',
     description: (
       <>
-        Extend or customize your website layout by reusing React. Docusaurus can
-        be extended while reusing the same header and footer.
+        Integrate multimodal AI for robot control. Learn how Vision-Language-Action
+        (VLA) models enable robots to understand and act on natural language.
       </>
     ),
+    link: '/docs/module-4-vla',
   },
 ];
 
-function Feature({title, Svg, description}: FeatureItem) {
+function Feature({title, icon, description, link}: FeatureItem) {
   return (
     <div className={clsx('col col--4')}>
       <div className="text--center">
-        <Svg className={styles.featureSvg} role="img" />
+        <span className={styles.featureIcon} role="img" aria-label={title}>
+          {icon}
+        </span>
       </div>
       <div className="text--center padding-horiz--md">
-        <Heading as="h3">{title}</Heading>
+        <Heading as="h3">
+          <Link to={link} className={styles.featureLink}>
+            {title}
+          </Link>
+        </Heading>
         <p>{description}</p>
       </div>
     </div>
