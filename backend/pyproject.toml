@@ -1,7 +1,7 @@
 [project]
 name = "embedding-pipeline"
 version = "0.1.0"
-description = "Add your description here"
+description = "RAG Embedding and Retrieval Pipeline"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -11,4 +11,16 @@ dependencies = [
     "python-dotenv>=1.2.1",
     "qdrant-client>=1.16.2",
     "requests>=2.32.5",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-timeout>=2.3.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.0.2",
+    "pytest-timeout>=2.4.0",
 ]

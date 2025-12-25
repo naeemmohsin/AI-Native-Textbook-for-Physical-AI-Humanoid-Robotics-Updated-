@@ -12,6 +12,7 @@ import os
 import sys
 import uuid
 import logging
+from pathlib import Path
 from urllib.parse import urljoin, urlparse
 from typing import Optional
 
@@ -22,11 +23,13 @@ import cohere
 from qdrant_client import QdrantClient
 from qdrant_client.models import Distance, VectorParams, PointStruct
 
-# Configuration
-BASE_URL = "https://ai-native-textbook-for-physical-ai.vercel.app" 
-TARGET_URL = "https://ai-native-textbook-for-physical-ai.vercel.app/sitemap.xml"
-PROJECT_NAME = "ai-native-textbook-for-physical-ai-humanoid-robotics-updated"
-PROJECT_ID="prj_SDeLZF9D3Aw4Iw7NEj72oontiwZz"
+# Load environment variables early
+load_dotenv()
+
+# Configuration from .env
+BASE_URL = os.getenv("DEPLOYED_VERCEL_URL", "https://ai-native-textbook-for-physical-ai.vercel.app")
+TARGET_URL = os.getenv("TARGET_URL", f"{BASE_URL}/sitemap.xml")
+LOCAL_DOCS_PATH = os.getenv("LOCAL_DOCS_PATH", "../frontend_book/docs")
 COLLECTION_NAME = "rag-embedding"
 EMBEDDING_MODEL = "embed-english-v3.0"
 EMBEDDING_DIMENSION = 1024
@@ -227,6 +230,86 @@ def extract_text_from_urls(urls: list[str]) -> list[tuple[str, str, str]]:
     logger.info(f"Successfully extracted {len(documents)} documents")
     return documents
 
+
+def extract_text_from_local_files(docs_path: str, base_url: str) -> list[tuple[str, str, str]]:
+    """
+    Read local markdown files and extract text content.
+
+    Args:
+        docs_path: Path to the local docs directory
+        base_url: Base URL to construct URLs for the documents
+
+    Returns:
+        List of tuples: (url, title, text)
+    """
+    documents = []
+    docs_dir = Path(docs_path)
+
+    if not docs_dir.exists():
+        logger.warning(f"Local docs path does not exist: {docs_path}")
+        return documents
+
+    # Find all markdown files
+    md_files = list(docs_dir.rglob("*.md")) + list(docs_dir.rglob("*.mdx"))
+    logger.info(f"Found {len(md_files)} local markdown files")
+
+    for md_file in md_files:
+        try:
+            content = md_file.read_text(encoding="utf-8")
+
+            # Extract title from frontmatter or first heading
+            title = md_file.stem
+            lines = content.split("\n")
+
+            # Check for frontmatter title
+            in_frontmatter = False
+            for line in lines:
+                if line.strip() == "---":
+                    in_frontmatter = not in_frontmatter
+                    continue
+                if in_frontmatter and line.startswith("title:"):
+                    title = line.replace("title:", "").strip().strip('"').strip("'")
+                    break
+                if not in_frontmatter and line.startswith("# "):
+                    title = line.replace("# ", "").strip()
+                    break
+
+            # Remove frontmatter and clean text
+            text_lines = []
+            in_frontmatter = False
+            frontmatter_count = 0
+            for line in lines:
+                if line.strip() == "---":
+                    frontmatter_count += 1
+                    if frontmatter_count <= 2:
+                        continue
+                if frontmatter_count < 2:
+                    continue
+                # Skip code blocks for cleaner text
+                text_lines.append(line)
+
+            text = " ".join(text_lines)
+            text = " ".join(text.split())  # Clean whitespace
+
+            # Construct URL from file path
+            relative_path = md_file.relative_to(docs_dir)
+            url_path = str(relative_path).replace("\\", "/").replace(".mdx", "").replace(".md", "")
+            if url_path.endswith("/index"):
+                url_path = url_path[:-6]
+            url = f"{base_url.rstrip('/')}/docs/{url_path}"
+
+            if text and len(text) > 50:
+                documents.append((url, title, text))
+                logger.info(f"Extracted local: {title[:50]}...")
+
+        except Exception as e:
+            logger.warning(f"Failed to read {md_file}: {e}")
+            continue
+
+    logger.info(f"Successfully extracted {len(documents)} documents from local files")
+    return documents
+
+
 # Chunk text for embedding (text got from above function)
 
 def chunk_text(text: str, chunk_size: int = CHUNK_SIZE, overlap: int = CHUNK_OVERLAP) -> list[str]:
@@ -352,15 +435,17 @@ def create_collection(client: QdrantClient) -> None:
 def save_chunk_to_qdrant(
     client: QdrantClient,
     chunks: list[dict],
-    embeddings: list[list[float]]
+    embeddings: list[list[float]],
+    batch_size: int = 100
 ) -> None:
     """
-    Upsert embeddings with metadata to Qdrant.
+    Upsert embeddings with metadata to Qdrant in batches.
 
     Args:
         client: Initialized QdrantClient instance
         chunks: List of chunk metadata dicts
         embeddings: List of embedding vectors
+        batch_size: Number of points per batch (default 100)
     """
     if not chunks or not embeddings:
         logger.warning("No chunks or embeddings to save")
@@ -369,7 +454,7 @@ def save_chunk_to_qdrant(
     if len(chunks) != len(embeddings):
         raise ValueError(f"Chunks ({len(chunks)}) and embeddings ({len(embeddings)}) count mismatch")
 
-    logger.info(f"Upserting {len(chunks)} points to Qdrant")
+    logger.info(f"Upserting {len(chunks)} points to Qdrant in batches of {batch_size}")
 
     try:
         points = [
@@ -386,10 +471,16 @@ def save_chunk_to_qdrant(
             for chunk, embedding in zip(chunks, embeddings)
         ]
 
-        client.upsert(
-            collection_name=COLLECTION_NAME,
-            points=points
-        )
+        # Upsert in batches to avoid timeout
+        total_batches = (len(points) + batch_size - 1) // batch_size
+        for i in range(0, len(points), batch_size):
+            batch = points[i:i + batch_size]
+            batch_num = i // batch_size + 1
+            client.upsert(
+                collection_name=COLLECTION_NAME,
+                points=batch
+            )
+            logger.info(f"Batch {batch_num}/{total_batches}: Upserted {len(batch)} points")
 
         logger.info(f"Successfully upserted {len(points)} points to '{COLLECTION_NAME}'")
 
@@ -405,9 +496,6 @@ def main() -> None:
     logger.info("=" * 60)
     logger.info("Starting Embedding Pipeline for RAG Retrieval")
     logger.info("=" * 60)
-
-    # Load environment variables
-    load_dotenv()
 
     # Validate configuration
     cohere_api_key = os.getenv("COHERE_API_KEY")
@@ -447,8 +535,17 @@ def main() -> None:
         logger.info("Step 2: Extracting text from URLs")
         documents = extract_text_from_urls(urls)
 
+        # Fallback to local files if web extraction fails
+        if len(documents) < 3:
+            logger.warning(f"Only {len(documents)} documents from web. Trying local files...")
+            logger.info("-" * 40)
+            logger.info("Step 2b: Extracting text from local markdown files")
+            local_docs = extract_text_from_local_files(LOCAL_DOCS_PATH, BASE_URL)
+            if local_docs:
+                documents = local_docs
+
         if not documents:
-            logger.error("No documents extracted")
+            logger.error("No documents extracted from web or local files")
             sys.exit(2)
 
         # Step 3: Chunk text
