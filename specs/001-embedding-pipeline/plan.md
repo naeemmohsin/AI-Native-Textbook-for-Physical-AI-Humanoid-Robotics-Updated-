@@ -5,7 +5,7 @@
 
 ## Summary
 
-Build a Python-based embedding pipeline that crawls the deployed Docusaurus site at "https://ai-native-textbook-for-physical-ai.vercel.app", extracts and cleans text content, generates embeddings using Cohere's API, and stores them in Qdrant for RAG-based retrieval. The entire implementation will be contained in a single `main.py` file within a `backend/` folder, following the user's specified function design.
+Build a Python-based embedding pipeline that crawls the deployed Docusaurus site at "https://ai-native-textbook-for-physical-ai.vercel.app/sitemap.xml", extracts and cleans text content, generates embeddings using Cohere's API, and stores them in Qdrant for RAG-based retrieval. The entire implementation will be contained in a single `main.py` file within a `backend/` folder, following the user's specified function design.
 
 ## Technical Context
 

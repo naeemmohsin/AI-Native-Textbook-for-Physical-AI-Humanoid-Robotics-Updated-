@@ -267,6 +267,6 @@ All implementation happens in `backend/main.py`. Tasks are organized by logical 
 
 - All functions implemented in single `backend/main.py` file per user requirement
 - Manual testing via `uv run python main.py`
-- Target URL: https://ai-native-textbook-for-physical-ai-phi.vercel.app/
+- Target URL: TARGET_URL = "https://ai-native-textbook-for-physical-ai.vercel.app/sitemap.xml"
 - Collection name: `rag-embedding`
 - Embedding dimensions: 1024 (Cohere embed-english-v3.0)

@@ -4,7 +4,7 @@ Embedding Pipeline for RAG Retrieval
 This script crawls a deployed Docusaurus documentation site, extracts text content,
 generates embeddings using Cohere, and stores them in Qdrant for RAG-based retrieval.
 
-Target URL: "https://ai-native-textbook-for-physical-ai.vercel.app"
+TARGET_URL = "https://ai-native-textbook-for-physical-ai.vercel.app/sitemap.xml"
 Collection: rag-embedding
 """
 
@@ -24,8 +24,7 @@ from qdrant_client.models import Distance, VectorParams, PointStruct
 
 # Configuration
 BASE_URL = "https://ai-native-textbook-for-physical-ai.vercel.app" 
-TARGET_URL = "https://ai-native-textbook-for-physical-ai.vercel.app"
-SITEMAP_URL = "https://ai-native-textbook-for-physical-ai.vercel.app/sitemap.xml"
+TARGET_URL = "https://ai-native-textbook-for-physical-ai.vercel.app/sitemap.xml"
 PROJECT_NAME = "ai-native-textbook-for-physical-ai-humanoid-robotics-updated"
 PROJECT_ID="prj_SDeLZF9D3Aw4Iw7NEj72oontiwZz"
 COLLECTION_NAME = "rag-embedding"
