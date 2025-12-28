@@ -6,7 +6,6 @@ Exposes the RAG agent via REST API for frontend integration.
 Usage:
     uv run api.py
 """
-
 import logging
 import re
 import uuid
