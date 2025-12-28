@@ -23,22 +23,20 @@ from agents import OpenAIChatCompletionsModel
 from openai import AsyncOpenAI
 from tools import search_book_content
 
-# Set OpenRouter API key for OpenAI client
-ROUTER_API_KEY="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"
-# Initialize OpenAI client and model
-client=AsyncOpenAI(
-    api_key=ROUTER_API_KEY,
-    base_url="https://openrouter.ai/api/v1"
-)
-
-third_party_model=OpenAIChatCompletionsModel(
-    openai_client=client,
-    model="mistralai/devstral-2512:free"
-)
-
-# Load environment variables from parent directory
-env_path = Path(__file__).parent.parent / ".env"
+# Load environment variables from backend directory
+env_path = Path(__file__).parent / ".env"
 load_dotenv(env_path)
+
+# Initialize OpenAI client with API key from .env
+client = AsyncOpenAI(
+    api_key=os.getenv("OPENAI_API_KEY"),
+)
+
+# Use OpenAI model
+openai_model = OpenAIChatCompletionsModel(
+    openai_client=client,
+    model="gpt-4o-mini"
+)
 
 # Configure logging
 logging.basicConfig(
@@ -76,7 +74,7 @@ def create_agent() -> Agent:
     return Agent(
         name="BookRAGAgent",
         instructions=AGENT_INSTRUCTIONS,
-        model=third_party_model,
+        model=openai_model,
         tools=[search_book_content],
     )
 
