@@ -1,0 +1,174 @@
+openapi: 3.1.0
+info:
+  title: RAG Book Agent API
+  description: API for querying the ROS 2 Robotics book using RAG-based AI agent
+  version: 1.0.0
+  contact:
+    name: Physical AI Textbook
+
+servers:
+  - url: http://localhost:8000
+    description: Local development server
+
+paths:
+  /api/query:
+    post:
+      summary: Submit a query to the RAG agent
+      description: |
+        Sends a user question to the RAG agent and returns an AI-generated
+        response grounded in the book content with source citations.
+      operationId: submitQuery
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QueryRequest'
+            examples:
+              simple:
+                summary: Simple question
+                value:
+                  query: "What is ROS 2?"
+              with_session:
+                summary: Follow-up question with session
+                value:
+                  query: "How do nodes communicate?"
+                  session_id: "session_abc123"
+              with_context:
+                summary: Question with selected text context
+                value:
+                  query: "Explain this in more detail"
+                  context: "ROS 2 uses DDS for communication"
+                  session_id: "session_abc123"
+      responses:
+        '200':
+          description: Successful response with AI-generated answer
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueryResponse'
+              example:
+                response: "ROS 2 (Robot Operating System 2) is a middleware framework that provides the tools, libraries, and conventions needed to build robot applications..."
+                citations:
+                  - title: "ROS 2 Fundamentals"
+                    url: "https://ai-native-textbook-for-physical-ai.vercel.app/docs/module-1-ros2/chapter-1-fundamentals"
+                session_id: "session_abc123"
+        '400':
+          description: Invalid request (empty query, invalid format)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Validation error"
+                detail: "Query must not be empty"
+        '500':
+          description: Server error (agent failure, connection issues)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error: "Failed to process query"
+                detail: "Connection to OpenAI API failed"
+
+  /api/health:
+    get:
+      summary: Health check endpoint
+      description: Returns the health status of the API server
+      operationId: healthCheck
+      responses:
+        '200':
+          description: Server is healthy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HealthResponse'
+              example:
+                status: "ok"
+                version: "1.0.0"
+
+components:
+  schemas:
+    QueryRequest:
+      type: object
+      required:
+        - query
+      properties:
+        query:
+          type: string
+          minLength: 1
+          maxLength: 5000
+          description: The user's question text
+          example: "What is ROS 2?"
+        session_id:
+          type: string
+          description: Session identifier for conversation continuity
+          example: "session_abc123"
+        context:
+          type: string
+          maxLength: 5000
+          description: Selected text context for contextual queries
+          example: "ROS 2 uses DDS for real-time communication"
+
+    QueryResponse:
+      type: object
+      required:
+        - response
+        - citations
+        - session_id
+      properties:
+        response:
+          type: string
+          description: The AI-generated answer text
+        citations:
+          type: array
+          items:
+            $ref: '#/components/schemas/Citation'
+          description: List of source citations from the book
+        session_id:
+          type: string
+          description: Session identifier for follow-up queries
+
+    Citation:
+      type: object
+      required:
+        - title
+        - url
+      properties:
+        title:
+          type: string
+          description: Title of the source section
+          example: "ROS 2 Fundamentals"
+        url:
+          type: string
+          format: uri
+          description: URL to the book page
+          example: "https://ai-native-textbook-for-physical-ai.vercel.app/docs/module-1-ros2/chapter-1-fundamentals"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Error message
+        detail:
+          type: string
+          description: Additional error details
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - version
+      properties:
+        status:
+          type: string
+          enum: [ok]
+          description: Health status
+        version:
+          type: string
+          description: API version
+          example: "1.0.0"
